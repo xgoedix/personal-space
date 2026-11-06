@@ -24,3 +24,12 @@ export function isRemoteAllowed(method: string, path: string): boolean {
   if (id === undefined) return COLLECTION_METHODS.has(m);
   return REMOTE_ID_PATTERN.test(id) && ITEM_METHODS.has(m);
 }
+
+/** Dedicated Shortcuts token: no generic private reads, settings, token admin or chat. */
+export function isCaptureAllowed(method: string, path: string): boolean {
+  if(method === "GET" && path === "/api/capture/calendar") return true;
+  if (method === "POST" && path === "/api/capture") return true;
+  const parts = path.split("/");
+  if (method === "GET" && parts.length === 4 && parts[1] === "api" && parts[2] === "capture" && REMOTE_ID_PATTERN.test(parts[3]!)) return true;
+  return method === "POST" && parts.length === 6 && parts[1] === "api" && parts[2] === "calendar" && parts[3] === "events" && REMOTE_ID_PATTERN.test(parts[4]!) && ["claim", "ack"].includes(parts[5]!);
+}

@@ -1,3 +1,4 @@
+import { BichoService } from "../bicho/service";
 import type { Env } from "../env";
 import { Database } from "../db/database";
 import { TaskRepository } from "../db/repositories/tasks";
@@ -20,6 +21,7 @@ import { McpService } from "../mcp/service";
 /** All data services for the single owner, bound to one Durable Object's storage. */
 export interface Services {
   db: Database;
+  bicho: BichoService;
   tasks: TaskRepository;
   memories: MemoryRepository;
   notes: NoteRepository;
@@ -61,11 +63,14 @@ export function createServices(
   const usage = new UsageService(db);
   const tasks = new TaskRepository(db);
   const projects = new ProjectRepository(db);
+  const automations = new AutomationService(automationsRepo, settings, activity, scheduler);
+  const notes = new NoteRepository(db);
   return {
     db,
+    bicho: new BichoService(db, automations, automationsRepo, notes, settings),
     tasks,
     memories,
-    notes: new NoteRepository(db),
+    notes,
     projects,
     conversations: new ConversationRepository(db),
     automationsRepo,
@@ -75,11 +80,13 @@ export function createServices(
     usage,
     activity,
     auth: new AuthService(db, settings, {
+      installationId: env.TALORYS_INSTALLATION_ID,
+      enrollment: env.BICHO_ENROLLMENT,
       passwordHash: env.OWNER_PASSWORD_HASH,
       password: env.OWNER_PASSWORD,
       sessionSecret: env.SESSION_SECRET,
     }),
-    automations: new AutomationService(automationsRepo, settings, activity, scheduler),
+    automations,
     memoryHistory: new MemoryHistoryService(db, memories, settings, usage, activity, memoryHooks),
     push,
     remote: new RemoteTokenService(db, settings, env.SESSION_SECRET),

@@ -7,6 +7,7 @@ import { applyLanguage, type LanguagePreference } from "../lib/i18n";
 interface SessionState {
   authenticated: boolean;
   configured: boolean;
+  enrollment_available?: boolean;
   agent_name?: string;
   theme?: "system" | "light" | "dark";
   language?: LanguagePreference;

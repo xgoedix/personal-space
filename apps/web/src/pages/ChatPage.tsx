@@ -27,7 +27,7 @@ import { TaskPlanCard } from "../components/TaskPlanCard";
 import { Markdown } from "../components/Markdown";
 import { Button, ConfirmDialog, Dialog, Input, Spinner } from "../components/ui";
 import { Logo } from "../components/Logo";
-import { keys, useApiMutation, useConversation, useConversations, useSettings } from "../hooks/queries";
+import { keys, useApiMutation, useConversation, useConversations } from "../hooks/queries";
 import { usePageTitle } from "../hooks/pageTitle";
 import { api, ApiError, streamChat } from "../lib/api";
 import { notifyChatFailure, notifyChatTurn } from "../lib/chatAlerts";
@@ -59,7 +59,6 @@ export function ChatPage() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const settings = useSettings();
   const conversation = useConversation(conversationId);
   const [stream, setStream] = useState<StreamState | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -229,7 +228,7 @@ export function ChatPage() {
           className="scrollbar-thin min-h-0 flex-1 overflow-y-auto"
         >
           {showEmpty ? (
-            <EmptyChat name={settings.data?.agentName ?? "Talorys"} onPick={(s) => void send(s)} />
+            <EmptyChat name={"BichO"} onPick={(s) => void send(s)} />
           ) : conversation.isLoading && !streamHere ? (
             <div className="flex justify-center py-16">
               <Spinner />
@@ -526,7 +525,7 @@ function ToolChip({ tool }: { tool: ToolActivity }) {
       ) : (
         <XCircle className="h-3 w-3 shrink-0" />
       )}
-      <span className="truncate">{tool.label}</span>
+      <span className="truncate">{spanishToolLabel(tool)}</span>
     </span>
   );
 }
@@ -673,4 +672,9 @@ function Composer({
       </p>
     </div>
   );
+}
+
+function spanishToolLabel(tool: ToolActivity):string {
+ const labels:Record<string,string>={create_task:'Guardar tarea',list_tasks:'Consultar tareas',update_task:'Actualizar tarea',complete_task:'Completar tarea',delete_task:'Proponer eliminar tarea',create_note:'Guardar nota',search_notes:'Buscar notas',get_note:'Consultar nota',update_note:'Proponer editar nota',delete_note:'Proponer eliminar nota',remember:'Guardar recuerdo',recall:'Consultar recuerdos',forget_memory:'Proponer eliminar recuerdo',create_reminder:'Programar recordatorio',create_automation:'Programar automatización',list_automations:'Consultar recordatorios',cancel_automation:'Proponer cancelar aviso',propose_task_plan:'Preparar propuesta de tareas',search:'Buscar información',list_projects:'Consultar proyectos',create_project:'Crear proyecto'};
+ return labels[tool.name]??tool.label;
 }

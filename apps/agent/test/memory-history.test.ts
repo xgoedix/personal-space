@@ -417,6 +417,7 @@ describe("migration from the previous schema", () => {
     const run = freshAgent();
     await run((agent, state) => {
       const db = new Database(state.storage);
+      for (const table of ['tal_calendar_exports', 'tal_captures', 'tal_calendar_events', 'tal_saved_links', 'tal_birthdays', 'tal_list_items', 'tal_lists']) db.run(`DROP TABLE IF EXISTS ${table}`);
       // Rebuild the v3 shape, removing tables and columns added by later migrations.
       for (const idx of ["tal_memories_status", "tal_memories_superseded_by"]) db.run(`DROP INDEX IF EXISTS ${idx}`);
       db.run(`DROP TABLE IF EXISTS tal_memory_reviews`);
@@ -451,7 +452,7 @@ describe("backup and restore", () => {
       s.memoryHistory.resolveReview(reviews[0]!.id, "mark_historical");
       return JSON.parse(JSON.stringify(exportData(s)));
     });
-    expect(backup.version).toBe(1);
+    expect(backup.version).toBe(2);
     const vw = backup.data.memories.find((m: any) => m.content === "I own a Volkswagen.");
     const tesla = backup.data.memories.find((m: any) => m.content.includes("Tesla"));
     expect(vw).toMatchObject({ status: "historical", superseded_by: tesla.id });

@@ -21,13 +21,15 @@ export const reminderTools = [
       let at = i.at;
       if (!at && i.in_minutes) at = toLocalMinute(new Date(Date.now() + i.in_minutes * 60_000 + 59_000), ctx.timezone);
       if (!at) throw new ToolError("Provide 'at' or 'in_minutes'.");
-      const a = await ctx.services.automations.create({
+      const existing = ctx.services.automations.list().find(a => a.kind === "reminder" && a.enabled && a.message.trim().toLocaleLowerCase("es") === i.message.trim().toLocaleLowerCase("es") && a.schedule.type === "once" && a.schedule.at === at);
+      const a = existing ?? await ctx.services.automations.create({
         name: clip(i.message, 120),
         kind: "reminder",
         message: i.message,
         schedule: { type: "once", at },
         enabled: true,
       });
+      if(!a.next_run) throw new ToolError("El recordatorio existe, pero su aviso todavía no está confirmado. Compruébalo en BichO antes de repetirlo.");
       return { reminder: { id: a.id, message: a.message, when: formatLocal(a.next_run, ctx.timezone) } };
     },
   }),

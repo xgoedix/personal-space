@@ -1,3 +1,4 @@
+import { birthdaySchema, savedLinkSchema, birthdaySettingsSchema } from "./bicho";
 import { z } from "zod";
 import { BACKUP_FORMAT, LANGUAGES, LIMIT_CEILINGS, TASK_PRIORITIES } from "./constants";
 import { isValidTimeZone, scheduleSpecSchema } from "./recurrence";
@@ -391,6 +392,12 @@ export const backupSchema = z.object({
     notes: z.array(backupEntity({ id, title: z.string(), content: z.string(), created_at: z.string(), updated_at: isoDate })).default([]),
     projects: z.array(backupEntity({ id, name: z.string(), created_at: z.string(), updated_at: isoDate })).default([]),
     automations: z.array(backupEntity({ id, name: z.string(), kind: z.string(), schedule: z.unknown() })).default([]),
+    lists: z.array(z.object({id, name:z.string().trim().min(1).max(200),created_at:isoDate,updated_at:isoDate})).max(200).default([]),
+    list_items: z.array(z.object({id,list_id:id,text:z.string().trim().min(1).max(200),completed:z.boolean(),position:z.number().int().min(0),created_at:isoDate,updated_at:isoDate})).max(100000).default([]),
+    birthdays: z.array(birthdaySchema.and(z.object({id,automation_id:id.nullable(),created_at:isoDate,updated_at:isoDate}))).default([]),
+    saved_links: z.array(savedLinkSchema.omit({title:true}).extend({note_id:id,updated_at:isoDate})).default([]),
+    calendar_events: z.array(z.object({id,title:z.string().min(1).max(200),start_at:isoDate,end_at:isoDate,timezone:z.string().max(100),notes:z.string().max(4000),created_at:isoDate,updated_at:isoDate})).default([]),
+    birthday_settings: birthdaySettingsSchema.optional(),
     /** Connection details only: no credentials, sessions or tool choices. Imported servers arrive disabled. */
     mcp_servers: z.array(backupEntity({ id, name: z.string(), url: z.string(), auth_type: z.string() })).default([]),
   }),

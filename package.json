@@ -26,6 +26,9 @@
     "test:pack": "npm run test:pack -w create-talorys",
     "test:smoke": "node tests/smoke/real-deploy.mjs",
     "screenshots": "node scripts/screenshots.mjs",
+    "v3:prepare": "VITE_PERSONAL_PREVIEW=false npm run build -w create-talorys",
+    "v3:deploy": "node packages/create-talorys/dist/v3.js",
+    "v3:mobile": "node packages/create-talorys/dist/v3-mobile.js",
     "staging:prepare": "VITE_PERSONAL_PREVIEW=false npm run build -w create-talorys",
     "staging:deploy": "node packages/create-talorys/dist/staging.js"
   },

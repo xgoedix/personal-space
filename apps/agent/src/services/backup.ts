@@ -1,3 +1,4 @@
+import { normalizeName } from "../bicho/service";
 import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
@@ -45,6 +46,12 @@ export function exportData(s: Services): Backup {
       automations: db
         .all<Record<string, unknown>>(`SELECT id, name, kind, message, schedule, enabled, created_at, updated_at FROM tal_automations`)
         .map((a) => ({ ...a, schedule: JSON.parse(String(a.schedule)), enabled: a.enabled === 1 })),
+      lists: s.bicho.lists().map(({items, ...l}) => l),
+      list_items: s.bicho.lists().flatMap(l => l.items),
+      birthdays: s.bicho.birthdays(),
+      saved_links: s.bicho.saved(),
+      calendar_events: s.bicho.events(),
+      birthday_settings: {time: s.bicho.birthdayTime()},
       // Where each server is and how it authenticates; never the credential, a session or tool choices.
       mcp_servers: db.all(`SELECT id, name, url, auth_type, created_at FROM tal_mcp_servers ORDER BY created_at`),
     },
@@ -63,6 +70,7 @@ export interface ImportSummary {
   automations_paused: number;
   /** Imported MCP servers arrive disabled, without credentials or enabled tools. */
   mcp_servers: number;
+  lists: number; list_items: number; birthdays: number; saved_links: number; calendar_events: number;
   ignored_settings: string[];
 }
 
@@ -180,6 +188,7 @@ export async function importData(s: Services, raw: unknown): Promise<ImportSumma
       );
     }
     let automations = 0;
+    const newAutomationIds = new Set<string>();
     for (const a of d.automations) {
       const schedule = scheduleSpecSchema.safeParse(a.schedule);
       if (!schedule.success) continue;
@@ -197,7 +206,40 @@ export async function importData(s: Services, raw: unknown): Promise<ImportSumma
          VALUES (?, ?, ?, ?, ?, 0, 'paused', ?, ?)`,
         a.id, a.name, kind, str(a.message), JSON.stringify(schedule.data), str(a.created_at, now), now,
       );
+      newAutomationIds.add(a.id);
       automations++;
+    }
+    // V3 is additive. Conflicting names/URLs keep the local item; orphaned children are skipped.
+    // Existing birthday alarms keep their matching person/date. New birthdays arrive paused.
+    let lists=0, listItems=0, birthdays=0, savedLinks=0, calendarEvents=0;
+    if(d.birthday_settings && !s.bicho.birthdays().length) s.settings.setJson("bicho.birthdayTime",d.birthday_settings.time);
+    for (const l of d.lists) {
+      if (db.one(`SELECT 1 FROM tal_lists WHERE name_key=? AND id<>?`,normalizeName(l.name),l.id)) continue;
+      db.run(`INSERT INTO tal_lists(id,name,name_key,created_at,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,name_key=excluded.name_key,updated_at=excluded.updated_at WHERE excluded.updated_at>tal_lists.updated_at`,l.id,l.name,normalizeName(l.name),iso(l.created_at),iso(l.updated_at)); lists++;
+    }
+    for (const i of d.list_items) {
+      if (!db.one(`SELECT 1 FROM tal_lists WHERE id=?`,i.list_id) || db.one(`SELECT 1 FROM tal_list_items WHERE list_id=? AND text_key=? AND id<>?`,i.list_id,normalizeName(i.text),i.id)) continue;
+      const old=db.one<{list_id:string}>(`SELECT list_id FROM tal_list_items WHERE id=?`,i.id);
+      if(old && old.list_id!==i.list_id) continue;
+      db.run(`INSERT INTO tal_list_items(id,list_id,text,text_key,completed,position,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET text=excluded.text,text_key=excluded.text_key,completed=excluded.completed,position=excluded.position,updated_at=excluded.updated_at WHERE excluded.updated_at>tal_list_items.updated_at`,i.id,i.list_id,i.text,normalizeName(i.text),i.completed,i.position,iso(i.created_at),iso(i.updated_at)); listItems++;
+    }
+    for (const b of d.birthdays) {
+      if(db.one(`SELECT 1 FROM tal_birthdays WHERE id=? OR name_key=?`,b.id,normalizeName(b.name))) continue;
+      const a=b.automation_id ? s.automationsRepo.get(b.automation_id) : null;
+      const aid=a && newAutomationIds.has(a.id) && a.kind==='reminder' && a.schedule.type==='yearly' && a.schedule.month===b.month && a.schedule.day===b.day && !db.one(`SELECT 1 FROM tal_birthdays WHERE automation_id=?`,a.id) ? a.id : null;
+      db.run(`INSERT INTO tal_birthdays(id,name,name_key,month,day,birth_year,notes,automation_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)`,b.id,b.name,normalizeName(b.name),b.month,b.day,b.birth_year??null,b.notes,aid,iso(b.created_at),iso(b.updated_at)); birthdays++;
+    }
+    for (const l of d.saved_links) {
+      if(!s.notes.get(l.note_id) || db.one(`SELECT 1 FROM tal_saved_links WHERE url=? AND note_id<>?`,l.url,l.note_id)) continue;
+      db.run(`INSERT INTO tal_saved_links(note_id,url,price,image_url,comments,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(note_id) DO UPDATE SET url=excluded.url,price=excluded.price,image_url=excluded.image_url,comments=excluded.comments,updated_at=excluded.updated_at WHERE excluded.updated_at>tal_saved_links.updated_at`,l.note_id,l.url,l.price,l.image_url,l.comments,iso(l.updated_at));savedLinks++;
+    }
+    for(const e of d.calendar_events) {
+      if(Date.parse(e.end_at)<=Date.parse(e.start_at)) continue;
+      try {new Intl.DateTimeFormat('es',{timeZone:e.timezone});} catch {continue;}
+      const key=`${normalizeName(e.title)}|${iso(e.start_at)}|${iso(e.end_at)}`;
+      if(db.one(`SELECT 1 FROM tal_calendar_events WHERE id=? OR sync_key=?`,e.id,key)) continue;
+      // An imported receipt is not proof of an Apple event: always require authorization again.
+      db.run(`INSERT INTO tal_calendar_events(id,title,start_at,end_at,timezone,notes,sync_key,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`,e.id,e.title,iso(e.start_at),iso(e.end_at),e.timezone,e.notes,key,iso(e.created_at),iso(e.updated_at));calendarEvents++;
     }
     let mcpServers = 0;
     for (const m of d.mcp_servers) {
@@ -239,6 +281,7 @@ export async function importData(s: Services, raw: unknown): Promise<ImportSumma
       automations,
       automations_paused: automations,
       mcp_servers: mcpServers,
+      lists, list_items: listItems, birthdays, saved_links: savedLinks, calendar_events: calendarEvents,
       ignored_settings: [...ignored],
     };
   });

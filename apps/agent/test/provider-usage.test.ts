@@ -280,6 +280,14 @@ describe("runner additive usage", () => {
           },
         });
       }), model);
+      // The UI now buffers prose, so stop at the provider boundary, not a public text frame.
+      const generate = provider.generateWithTools.bind(provider);
+      provider.generateWithTools = async function* (req) {
+        for await (const event of generate(req)) {
+          yield event;
+          if(event.type === "text" && event.delta === "partial") abort.abort();
+        }
+      };
       const runner = new AgentRunner(agent.services, provider, {
         selectMemories: async () => [],
         tools: [{ name: "lookup", description: "Look up saved details", input: z.object({ query: z.string() }), permission: "read", label: () => "Looking up details", execute: () => ({ result: "saved details" }) }],
@@ -299,7 +307,7 @@ describe("runner additive usage", () => {
       expect(after.input_tokens_estimated - before.input_tokens_estimated).toBe(estimateTokens(JSON.stringify({ messages: prompt.messages, tools: prompt.tools })));
       expect(after.output_tokens_estimated - before.output_tokens_estimated).toBe(estimateTokens("thinkingpartial"));
       expect(after.ai_errors - before.ai_errors).toBe(0);
-      expect(events.at(-1)).toMatchObject({ type: "done", message: { status: "cancelled", content: "partial" } });
+      expect(events.at(-1)).toMatchObject({ type: "done", message: { status: "cancelled", content: "" } });
     });
   });
 
@@ -309,7 +317,16 @@ describe("runner additive usage", () => {
       const before = agent.services.usage.today();
       let text = "";
       const events = [];
-      for await (const event of new AgentRunner(agent.services, new MockAIProvider(0))
+      const mock = new MockAIProvider(0);
+      const generate = mock.generateWithTools.bind(mock);
+      mock.generateWithTools = async function* (req) {
+        for await (const event of generate(req)) {
+          if(event.type === "text") text += event.delta;
+          yield event;
+          if(event.type === "text") abort.abort();
+        }
+      };
+      for await (const event of new AgentRunner(agent.services, mock)
         .chat({ message: "hello", signal: abort.signal })) {
         events.push(event);
         if (event.type === "text") {
@@ -322,7 +339,7 @@ describe("runner additive usage", () => {
       expect(after.mock_calls - before.mock_calls).toBe(1);
       expect(after.priced_calls).toBe(before.priced_calls);
       expect(after.neurons_estimate).toBe(before.neurons_estimate);
-      expect(events.at(-1)).toMatchObject({ type: "done", message: { status: "cancelled", content: text } });
+      expect(events.at(-1)).toMatchObject({ type: "done", message: { status: "cancelled", content: "" } });
     });
   });
 

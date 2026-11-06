@@ -120,8 +120,12 @@ export class AgentRunner {
 
     let text = "";
     const tools: ToolActivity[] = [];
+    const receipts: string[] = [];
+    const questions: string[] = [];
+    let writeAttempted = false;
     let executor: ToolExecutor | null = null;
     const finish = (status: ChatMessage["status"], error: string | null): ChatMessage => {
+      if(status === "cancelled") text = [...receipts, ...questions].join(". ");
       // A plan proposed in a turn the owner stopped is withdrawn, so a half-finished reply can't leave one to confirm.
       if (status === "cancelled" && executor) {
         for (const id of executor.proposedPlans()) s.taskPlans.discard(id);
@@ -207,10 +211,21 @@ export class AgentRunner {
       // never shadow one; MCP tools share the same budget, caps, validation and approvals.
       executor = new ToolExecutor(
         [...(this.ext?.tools ?? ALL_TOOLS), ...this.mcpTools],
-        { services: s, timezone: settings.timezone, mode: "chat", conversationId: conversation.id, signal: input.signal },
+        { services: s, timezone: settings.timezone, ownerInput: userMessage.content, mode: "chat", conversationId: conversation.id, signal: input.signal },
         { maxToolCalls: limits.maxToolCalls },
       );
-      const providerTools = toProviderTools(executor);
+      const providerTools = toProviderTools(executor).map(tool => ({ ...tool, execute: async (args: unknown, callId: string) => {
+        const definition = executor!.find(tool.name);
+        if (definition?.permission !== "read") writeAttempted = true;
+        const output = await tool.execute(args, callId);
+        const r = output as Record<string, any> | null;
+        if (typeof r?.question === "string") questions.push(r.question);
+        if (definition?.permission === "write" && !r?.question && !r?.draft && !r?.plan && !r?.status?.includes?.("awaiting")) {
+          const receipt = r?.confirmation ?? (r?.created ? `Guardado en ${tool.name === "create_task" ? "Hoy" : "Ideas"} · ${r.created.title}` : r?.reminder ? `Recordatorio programado · ${r.reminder.message} · ${r.reminder.when}` : r?.automation ? `Automatización programada · ${r.automation.name} · ${r.automation.next_run}` : `Operación confirmada · ${toolLabel(definition, tool.name, args)}`);
+          receipts.push(receipt);
+        }
+        return output;
+      }}));
       const turnTools = executor;
 
       // Memory selection and summarizing may have spent budget since the first check.
@@ -228,7 +243,7 @@ export class AgentRunner {
       })) {
         if (event.type === "text") {
           text += event.delta;
-          yield { type: "text", delta: event.delta };
+          // Buffer until tools finish: model prose must not announce unexecuted writes.
         } else if (event.type === "tool-start") {
           const activity: ToolActivity = {
             id: event.id,
@@ -261,6 +276,14 @@ export class AgentRunner {
         yield { type: "done", message: finish("cancelled", null) };
         return;
       }
+      if (writeAttempted || questions.length || tools.some(t => t.status === "error")) {
+        text = [...receipts, ...questions,
+          ...(tools.some(t => t.status === "error") ? ["No se han completado todas las operaciones. Revisa las acciones con error antes de reintentarlo."] : []),
+          ...(tools.some(t => t.plan || t.approval) ? ["La propuesta necesita tu confirmación en la aplicación. Todavía no se ha ejecutado."] : []),
+        ].join(". ");
+      } else if (/\b(guardad[oa]s?|cread[oa]s?|programad[oa]s?|añadid[oa]s?|eliminad[oa]s?|actualizad[oa]s?|saved|created|scheduled|deleted|updated)\b/i.test(text)) {
+        text = "No hay ninguna operación confirmada. Indica qué quieres guardar y completa los datos que falten.";
+      }
       if (!text.trim()) {
         text = tools.some((t) => t.status === "error")
           ? "No se han completado todas las operaciones. Revisa las acciones marcadas con error antes de intentarlo de nuevo."
@@ -270,12 +293,14 @@ export class AgentRunner {
               ? "Las herramientas han terminado. Puedes consultar sus resultados en las acciones de este mensaje."
               : "No he podido generar una respuesta ni confirmar ninguna acción. Inténtalo de nuevo.";
       }
+      yield { type: "text", delta: text };
       yield { type: "done", message: finish("complete", null) };
     } catch (error) {
       if (input.signal.aborted) {
         yield { type: "done", message: finish("cancelled", null) };
         return;
       }
+      text = [...receipts, "No se ha podido completar la solicitud. Revisa las operaciones confirmadas antes de reintentar."].join(". ");
       const appError = error instanceof AppError ? error : classifyAiError(error);
       if (appError.code.startsWith("AI_")) s.usage.increment({ ai_errors: 1 });
       yield { type: "error", code: appError.code, message: appError.message };

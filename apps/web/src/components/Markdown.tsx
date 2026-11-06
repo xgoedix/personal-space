@@ -20,7 +20,7 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
             });
           }}
           className="rounded-md border border-border bg-surface p-1 text-fg-subtle opacity-0 transition-opacity hover:text-fg group-hover:opacity-100 focus:opacity-100"
-          aria-label="Copy code"
+          aria-label="Copiar código"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </button>

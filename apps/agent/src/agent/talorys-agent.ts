@@ -112,6 +112,8 @@ export class TalorysAgent extends Agent<Env, AgentState> {
     );
   }
 
+  background(work: Promise<unknown>): void { this.ctx.waitUntil(work); }
+
   refreshUnread(): void {
     const unread = this.services.notifications.unreadCount();
     if (unread !== this.state.unread) this.setState({ unread });

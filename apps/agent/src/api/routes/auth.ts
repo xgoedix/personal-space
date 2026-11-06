@@ -6,6 +6,16 @@ import { AppError } from "../errors";
 
 export const authRoutes = new Hono<AppEnv>();
 
+authRoutes.post("/enrollment", async (c) => {
+  const { password } = await body(c, loginSchema, 4096);
+  return c.json(await c.env.agent.services.auth.proposeEnrollment(password), 201);
+});
+authRoutes.post("/enrollment/:id/approve", (c) => {
+  c.env.agent.services.auth.approveEnrollment(c.req.param("id"), c.get("sessionId"));
+  c.header("set-cookie", sessionCookie(c, "", null));
+  return c.json({ activated: true });
+});
+
 authRoutes.post("/login", async (c) => {
   const { password } = await body(c, loginSchema, 4096);
   const auth = c.env.agent.services.auth;
@@ -30,6 +40,7 @@ authRoutes.get("/session", (c) => {
   return c.json({
     authenticated,
     configured: s.auth.isConfigured(),
+    enrollment_available: s.auth.enrollmentAvailable(),
     agent_name: authenticated ? settings.agentName : undefined,
     theme: authenticated ? settings.theme : undefined,
     language: authenticated ? settings.language : undefined,

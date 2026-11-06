@@ -338,7 +338,7 @@ describe("chat integration", () => {
     expect(done.type).toBe("done");
     const tool = done.message.tools.find((t: { name: string }) => t.name === "propose_task_plan");
     expect(tool.plan).toMatchObject({ status: "pending", plan: { title, tasks: [{ priority: "high" }, { priority: "high" }, { priority: "medium" }] } });
-    expect(done.message.content).toMatch(/proposed a plan/);
+    expect(done.message.content).toMatch(/propuesta necesita tu confirmación/);
     expect(done.message.content).not.toMatch(/created/i);
     const convId = done.message.conversation_id;
     const draft = tool.plan as TaskPlanDraft;
@@ -446,7 +446,7 @@ describe("persistence", () => {
       const s = a.services;
       await propose(s, { title: "Backup", tasks: [{ title: uniq("A") }, { title: uniq("B") }] });
       const backup = exportData(s);
-      expect(Object.keys(backup.data).sort()).toEqual(["automations", "conversations", "mcp_servers", "memories", "messages", "notes", "projects", "settings", "tasks"]);
+      expect(Object.keys(backup.data).sort()).toEqual(["automations", "birthday_settings", "birthdays", "calendar_events", "conversations", "list_items", "lists", "mcp_servers", "memories", "messages", "notes", "projects", "saved_links", "settings", "tasks"]);
       expect(JSON.stringify(backup.data)).not.toContain("tal_task_plan_drafts");
     });
     const c = await loggedIn();

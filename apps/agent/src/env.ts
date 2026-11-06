@@ -1,6 +1,7 @@
 import type { TalorysAgent } from "./agent/talorys-agent";
 
 export interface Env {
+  BICHO_ENROLLMENT?: string;
   AI?: Ai;
   TalorysAgent: DurableObjectNamespace<TalorysAgent>;
   /** PBKDF2 hash of the owner password, set by the installer as a Worker secret. */

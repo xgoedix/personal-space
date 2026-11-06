@@ -6,6 +6,8 @@
 			"!**/node_modules",
 			"!**/dist",
 			"!**/.wrangler",
+			"!**/.personal-space",
+			"!preview-site",
 			"!packages/create-talorys/templates",
 			"!test-results",
 			"!playwright-report"

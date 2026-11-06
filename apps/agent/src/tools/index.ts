@@ -1,5 +1,6 @@
 import { MCP_TOOL_PREFIX } from "@talorys/shared";
 import type { ToolDefinition } from "./registry";
+import { bichoTools } from "./bicho";
 import { taskTools } from "./tasks";
 import { noteTools, projectTools } from "./notes";
 import { memoryTools } from "./memories";
@@ -14,6 +15,7 @@ import { planTools } from "./plans";
  * arbitrary network access.
  */
 export const ALL_TOOLS: ToolDefinition[] = [
+  ...bichoTools,
   ...taskTools,
   ...planTools,
   ...noteTools,

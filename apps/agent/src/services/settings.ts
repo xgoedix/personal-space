@@ -4,10 +4,10 @@ import { type Database, now } from "../db/database";
 import { ValidationError } from "../api/errors";
 
 export const DEFAULT_SETTINGS: Settings = {
-  agentName: "Talorys",
+  agentName: "BichO",
   timezone: "UTC",
   theme: "system",
-  language: "system",
+  language: "es",
   model: DEFAULT_MODEL,
   temperature: 0.4,
   limits: { ...DEFAULT_LIMITS },

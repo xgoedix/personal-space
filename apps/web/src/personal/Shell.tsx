@@ -19,7 +19,7 @@ export function SpaceShell() {
   const notifications = useNotifications();
   useKeyboardOpenFlag();
   useEffect(() => {
-    document.title = 'Personal Space';
+    document.title = 'BichO';
     document.documentElement.classList.remove('dark');
     const main = document.getElementById('space-main');
     main?.scrollTo(0, 0);
@@ -37,10 +37,10 @@ export function SpaceShell() {
   return <div className={`space-shell ${home ? 'is-home' : ''} ${chat ? 'is-chat' : ''}`}>
     <a className="skip-link" href="#space-main">Ir al contenido</a>
     <header className="space-header">
-      <Link to="/" className="space-brand" aria-label="Personal Space, inicio"><SpaceMark/><span>personal space<span className="brand-dot">.</span></span></Link>
+      <Link to="/" className="space-brand" aria-label="BichO, inicio"><SpaceMark/><span>BichO<span className="brand-dot">.</span></span></Link>
       {!home && <Link to="/" className="round-button mobile-back" aria-label="Volver a mi espacio"><ArrowLeft size={19}/></Link>}
-      <nav className="desktop-nav" aria-label="Navegación principal">{[['/', 'Mi espacio'], ['/today', 'Hoy'], ['/people', 'Personas'], ['/saved', 'Guardado'], ['/ideas', 'Ideas']].map(([to, label]) => <NavLink end to={to!} key={to}>{label}</NavLink>)}</nav>
-      <div className="header-actions"><button className="round-button" onClick={() => setNotificationsOpen(true)} aria-label={`Notificaciones${notifications.data?.unread ? `, ${notifications.data.unread} sin leer` : ''}`}><Bell size={18}/>{!!notifications.data?.unread && <span className="notification-dot"/>}</button><Link className="round-button" to="/settings" aria-label="Ajustes"><Settings2 size={18}/></Link></div>
+      <nav className="desktop-nav" aria-label="Navegación principal">{[['/', 'Mi espacio'], ['/today', 'Hoy'], ['/people', 'Personas'], ['/saved', 'Guardado'], ['/ideas', 'Ideas'], ['/lists', 'Listas']].map(([to, label]) => <NavLink end to={to!} key={to}>{label}</NavLink>)}</nav>
+      <div className="header-actions"><button type="button" className="round-button" onClick={() => setNotificationsOpen(true)} aria-label={`Notificaciones${notifications.data?.unread ? `, ${notifications.data.unread} sin leer` : ''}`}><Bell size={18}/>{!!notifications.data?.unread && <span className="notification-dot"/>}</button><Link className="round-button" to="/settings" aria-label="Ajustes"><Settings2 size={18}/></Link></div>
     </header>
     {PREVIEW && <div className="preview-label"><span/> PREVIEW · DATOS FICTICIOS</div>}
     <main id="space-main" tabIndex={-1} className="space-main"><ErrorBoundary resetKey={location.pathname}><Outlet/></ErrorBoundary></main>
