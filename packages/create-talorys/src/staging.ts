@@ -10,6 +10,7 @@ import { validatePassword } from "./secrets";
 import { ClackUi } from "./ui";
 import { assertStagingManifest, StagingWrangler } from "./staging-guard";
 import { verifyStaging } from "./staging-smoke";
+import { allowsSetupPost } from "./staging-form";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const directory = join(root, ".personal-space/staging");
@@ -65,7 +66,11 @@ const server = createServer(async (req, res) => {
   }
   if (req.headers.host !== new URL(origin).host || req.url?.split("?")[0] !== `/${token}`) return page("No encontrado.", 404);
   if (req.method === "POST") {
-    if (req.headers.origin !== origin || !/^application\/x-www-form-urlencoded(?:;|$)/.test(req.headers["content-type"] ?? "")) return page("Solicitud rechazada.", 403);
+    if (!allowsSetupPost({ origin: req.headers.origin, contentType: req.headers["content-type"], fetchSite: req.headers["sec-fetch-site"] as string | undefined }, origin)) {
+      // Metadata only: never log the body, password, cookies or arbitrary headers.
+      log(`Formulario rechazado: origin=${req.headers.origin ?? "ausente"}, content-type=${req.headers["content-type"] ?? "ausente"}, fetch-site=${req.headers["sec-fetch-site"] ?? "ausente"}`);
+      return page("Solicitud rechazada. Vuelve a abrir el formulario desde el enlace local.", 403);
+    }
     if (running) return page("La instalación ya está en curso.", 409);
     let raw = "";
     try {

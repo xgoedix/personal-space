@@ -5,6 +5,7 @@ import { generateAgentConfig, generatePagesConfig, toJsonc } from "../src/config
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { allowsSetupPost } from "../src/staging-form";
 
 const id = "psstabcdefgh";
 const manifest = {
@@ -13,6 +14,14 @@ const manifest = {
 } as Manifest;
 
 describe("independent staging boundary", () => {
+  it("accepts WebView form requests but rejects foreign origins and cross-site posts", () => {
+    const local = "http://127.0.0.1:50000";
+    const base = { contentType: "application/x-www-form-urlencoded" };
+    for (const origin of [local, undefined, "null"]) expect(allowsSetupPost({ ...base, origin }, local)).toBe(true);
+    expect(allowsSetupPost({ ...base, origin: "https://example.com" }, local)).toBe(false);
+    expect(allowsSetupPost({ ...base, origin: "null", fetchSite: "cross-site" }, local)).toBe(false);
+    expect(allowsSetupPost({ origin: local, contentType: "application/json" }, local)).toBe(false);
+  });
   it("accepts only the dedicated prefix and matching resources", () => {
     expect(() => assertStagingManifest(manifest)).not.toThrow();
     for (const id of ["etfd7yab", "dev", "psst", "psstabcdefgh-agent"]) expect(() => assertStagingId(id)).toThrow();
