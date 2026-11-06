@@ -9,7 +9,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const state = join(root, ".wrangler/e2e-state");
 rmSync(state, { recursive: true, force: true });
 const wrangler = join(root, "node_modules/wrangler/bin/wrangler.js");
-const env = { ...process.env, WRANGLER_SEND_METRICS: "false" };
+const registry = join(root, ".wrangler/e2e-registry");
+rmSync(registry, { recursive: true, force: true });
+const env = { ...process.env, WRANGLER_SEND_METRICS: "false", WRANGLER_REGISTRY_PATH: registry };
 const procs = [];
 const start = (args, cwd) => procs.push(spawn(process.execPath, args, { cwd: join(root, cwd), env, stdio: "inherit" }));
 const stop = () => {

@@ -35,7 +35,7 @@ function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
 export async function enablePush(publicKey: string): Promise<{ device: PushDevice; status: PushStatus }> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("Notifications were not allowed for this site.");
-  const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
   await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
   // A subscription made with an older key cannot be reused after the keys change.

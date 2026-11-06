@@ -29,6 +29,7 @@ const b64url = (min: number, max: number) =>
 export const pushSubscribeSchema = z.object({
   endpoint: z.string().url().max(2048),
   keys: z.object({ p256dh: b64url(86, 90), auth: b64url(20, 24) }),
+  replace_endpoint: z.string().url().max(2048).optional(),
   label: z.string().trim().max(100).optional(),
 });
 

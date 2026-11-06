@@ -120,3 +120,18 @@ test("Siri incluye guía y permisos; bloquear elimina el acceso @mobile", async 
   await expect(page.getByRole("heading", { name: "BichO", exact: true })).toBeVisible();
   expect((await page.request.get("/api/lists")).status()).toBe(401);
 });
+
+test("actualización disponible conserva el borrador hasta autorizar la recarga @mobile", async ({ page }) => {
+  await page.route('**/release.json', route => route.fulfill({ json: { version: 'release-test-new-version' }, headers: { 'cache-control': 'no-store' } }));
+  await login(page);
+  await page.goto('http://localhost:8788/chat');
+  await page.locator('textarea').fill('Borrador sin enviar');
+  await expect(page.getByRole('button', { name: 'Actualizar', exact: true })).toBeVisible();
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.getByRole('button', { name: 'Actualizar', exact: true }).click();
+  await expect(page.locator('textarea')).toHaveValue('Borrador sin enviar');
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Actualizar', exact: true }).click();
+  await expect(page.locator('textarea')).toHaveValue('');
+  await expect(page.getByLabel('Contraseña', { exact: true })).toHaveCount(0);
+});

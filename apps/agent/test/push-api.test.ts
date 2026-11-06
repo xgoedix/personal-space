@@ -105,6 +105,22 @@ describe("push API", () => {
     expect((await c.json("/api/push")).devices).toHaveLength(MAX_PUSH_DEVICES);
   });
 
+  it("replaces an expired endpoint atomically even at the device limit", async () => {
+    const c = await loggedIn();
+    const old = await fakeBrowser();
+    await c.call("/api/push/subscriptions", { method: "POST", body: old.json });
+    for (let i = 1; i < MAX_PUSH_DEVICES; i++) await c.call("/api/push/subscriptions", { method: "POST", body: (await fakeBrowser()).json });
+    const replacement = await fakeBrowser();
+    const bad = await c.call("/api/push/subscriptions", { method: "POST", body: { ...replacement.json, endpoint: "https://localhost/push", replace_endpoint: old.endpoint } });
+    expect(bad.status).toBe(400);
+    expect(await inAgent(a => a.services.push.subscriptions.all().some(s => s.endpoint === old.endpoint))).toBe(true);
+    const result = await c.call("/api/push/subscriptions", { method: "POST", body: { ...replacement.json, replace_endpoint: old.endpoint } });
+    expect(result.status).toBe(200);
+    expect((await c.json("/api/push")).devices).toHaveLength(MAX_PUSH_DEVICES);
+    expect(await inAgent(a => a.services.push.subscriptions.all().some(s => s.endpoint === old.endpoint))).toBe(false);
+    expect(await inAgent(a => a.services.push.subscriptions.all().some(s => s.endpoint === replacement.endpoint))).toBe(true);
+  });
+
   it("never puts push subscriptions in a backup", async () => {
     const c = await loggedIn();
     const browser = await fakeBrowser();

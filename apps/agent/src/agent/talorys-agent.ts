@@ -14,6 +14,7 @@ import { semanticExtensions } from "../semantic";
 import { AppError } from "../api/errors";
 import { semanticNeighbors } from "../semantic/neighbors";
 import { CLEF_MODEL, type ClefRun } from "../memory/conflict";
+import { checkpoint } from "../operations/checkpoint";
 
 interface AgentState {
   /** Unread notifications, kept in agent state for cheap polling. */
@@ -36,6 +37,34 @@ export class TalorysAgent extends Agent<Env, AgentState> {
   private _services: Services | null = null;
   /** In-flight chat turns by conversation, for cancellation. */
   readonly activeRuns = new Map<string, AbortController>();
+
+  /** Cloudflare account RPC, not an API route. Existing sessions and credentials are untouched. */
+  async bichoReleaseCheckpoint() {
+    if (this.activeRuns.size) throw new Error("Hay una conversación en curso. Espera antes de publicar.");
+    if (this.services.db.one("SELECT id FROM tal_captures WHERE status = 'running' AND updated_at > ? LIMIT 1", new Date(Date.now() - 180_000).toISOString())) throw new Error("Hay una captura de Siri en curso. Espera antes de publicar.");
+    return this.ctx.blockConcurrencyWhile(() => checkpoint(this.ctx.storage, this.env as unknown as Record<string, unknown>));
+  }
+
+  /** Recovery requires Cloudflare account access and a bookmark from this same object. */
+  async bichoReleaseRestore(bookmark: string) {
+    if (typeof bookmark !== "string" || bookmark.length < 8 || bookmark.length > 128) throw new Error("Invalid recovery bookmark");
+    await this.ctx.storage.onNextSessionRestoreBookmark(bookmark);
+    this.ctx.abort("Administrative point-in-time recovery");
+  }
+
+  /** Five-minute operator session, obtainable only via authenticated Cloudflare account RPC. */
+  async bichoReleaseVerificationSession() {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const services = this.services;
+      // Creating a release session must never evict the owner's existing sessions.
+      if ((services.db.one<{ count: number }>("SELECT count(*) AS count FROM tal_sessions")?.count ?? 0) >= 20) throw new Error("No free verification session slot");
+      const session = await services.auth.createSession("BichO deployment verification");
+      const id = await services.auth.validate(session.token);
+      if (!id) throw new Error("Verification session unavailable");
+      services.db.run("UPDATE tal_sessions SET expires_at = ? WHERE id = ?", new Date(Date.now() + 300_000).toISOString(), id);
+      return session.token;
+    });
+  }
 
   get services(): Services {
     if (!this._services) {
