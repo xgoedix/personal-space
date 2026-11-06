@@ -75,6 +75,7 @@ export function useTasks() {
   // open tasks past the page limit.
   return useQuery({
     queryKey: keys.tasks,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const [open, completed] = await Promise.all([
         api<{ tasks: Task[] }>("/tasks?status=open&limit=500"),
@@ -90,6 +91,7 @@ export type MemoryStatusFilter = "all" | "active" | "historical" | "review";
 export function useMemories(q?: string, status: MemoryStatusFilter = "all") {
   return useQuery({
     queryKey: keys.memories(q, status),
+    refetchInterval: 30_000,
     queryFn: () => {
       const params = new URLSearchParams();
       if (q) params.set("q", q);
@@ -116,6 +118,7 @@ export function useMemoryHistory(id: string | null) {
 export function useNotes(q?: string) {
   return useQuery({
     queryKey: keys.notes(q),
+    refetchInterval: 30_000,
     queryFn: () => api<{ notes: Note[] }>(`/notes${q ? `?q=${encodeURIComponent(q)}` : ""}`).then((r) => r.notes),
     placeholderData: (prev) => prev,
   });

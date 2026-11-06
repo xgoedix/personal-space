@@ -319,7 +319,7 @@ export function chatGreeting(now: Date, timeZone: string): string {
 }
 
 function EmptyChat({ name: _name, onPick }: { name: string; onPick: (s: string) => void }) {
-  return <div className="chat-intro"><SpaceMark/><h1>Fuera de tu cabeza.<br/>Dentro de tu espacio.</h1><p>Una idea, algo pendiente, eso que no quieres olvidar.<br/>Empieza por contármelo.</p><div className="chat-suggestions">{SUGGESTIONS.map(s => <button key={s} type="button" onClick={() => onPick(s)}>{s}</button>)}</div>{PREVIEW && <p className="chat-preview-note">Preview visual: la IA no está conectada y los mensajes no se guardan. Explora las tareas y notas con los datos de ejemplo.</p>}</div>;
+  return <div className="chat-intro"><SpaceMark/><h1>Asistente</h1><p>Puedes guardar notas, crear recordatorios o consultar tus pendientes.</p><div className="chat-suggestions">{SUGGESTIONS.map(s => <button key={s} type="button" onClick={() => onPick(s)}>{s}</button>)}</div>{PREVIEW && <p className="chat-preview-note">Preview visual: la IA no está conectada y los mensajes no se guardan. Explora las tareas y notas con los datos de ejemplo.</p>}</div>;
 }
 
 function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavigate: () => void }) {

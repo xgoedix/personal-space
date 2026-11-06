@@ -7,7 +7,7 @@ import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
 export function LoginPage({ configured }: { configured: boolean }) {
-  const { t, rich } = useI18n();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -59,12 +59,12 @@ export function LoginPage({ configured }: { configured: boolean }) {
         <div className="mb-10 flex flex-col items-center text-center">
           <Logo className="h-12 w-12" />
           <h1 className="mt-5 text-2xl font-semibold tracking-tight">Personal Space</h1>
-          <p className="mt-1.5 text-sm text-fg-muted">{t("login.tagline")}</p>
+          <p className="mt-1.5 text-sm text-fg-muted">Acceso privado</p>
         </div>
 
         {!configured ? (
           <div role="alert" className="rounded-lg border border-border bg-surface p-4 text-sm leading-6 text-fg-muted">
-            {rich("login.notConfigured", { command: <code className="rounded bg-muted px-1">npx create-talorys@latest</code> })}
+            Esta instalación aún no está configurada. Completa la configuración antes de iniciar sesión.
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-3" noValidate>
@@ -107,10 +107,7 @@ export function LoginPage({ configured }: { configured: boolean }) {
         )}
 
         <p className="mt-10 text-center text-xs leading-5 text-fg-subtle">
-          {rich("login.forgotPassword", {
-            lineBreak: <br />,
-            command: <code className="rounded bg-muted px-1">npx create-talorys@latest reset-password</code>,
-          })}
+          Si has olvidado la contraseña, puedes restablecerla desde la carpeta de esta instalación en tu ordenador.
         </p>
       </div>
     </div>

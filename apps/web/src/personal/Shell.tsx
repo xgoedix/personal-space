@@ -44,7 +44,7 @@ export function SpaceShell() {
     </header>
     {PREVIEW && <div className="preview-label"><span/> PREVIEW · DATOS FICTICIOS</div>}
     <main id="space-main" tabIndex={-1} className="space-main"><ErrorBoundary resetKey={location.pathname}><Outlet/></ErrorBoundary></main>
-    {!chat && <footer className="space-footer"><span className="footer-note">UN POCO MÁS DE ESPACIO PARA TI.</span><Link className="assistant-entry" to="/chat"><SpaceMark/><span>Cuéntame algo...</span><span className="assistant-arrow"><ArrowUpRight size={22}/></span></Link><span className="footer-edition">TU VIDA, A TU RITMO.</span></footer>}
+    {!chat && <footer className="space-footer"><span className="footer-note"/><Link className="assistant-entry" to="/chat"><SpaceMark/><span>Cuéntame algo...</span><span className="assistant-arrow"><ArrowUpRight size={22}/></span></Link><span className="footer-edition"/></footer>}
     <NotificationCenter open={notificationsOpen} onClose={() => setNotificationsOpen(false)}/>
   </div>;
 }

@@ -21,7 +21,7 @@ if (appVersion !== pkg.version) {
 }
 
 const run = (cmd, args, cwd = root, shell = false) =>
-  execFileSync(cmd, args, { cwd, stdio: "inherit", shell, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } });
+  execFileSync(cmd, args, { cwd, stdio: "inherit", shell, env: { ...process.env, VITE_PERSONAL_PREVIEW: "false", WRANGLER_SEND_METRICS: "false" } });
 // Windows refuses to spawn npm.cmd without a shell (Node's CVE-2024-27980 fix): run npm's JS entry with node instead.
 const npm = (args) =>
   process.env.npm_execpath ? run(process.execPath, [process.env.npm_execpath, ...args]) : run("npm", args, root, process.platform === "win32");
@@ -42,10 +42,9 @@ if (extra.length) throw new Error(`Unexpected additional Worker modules: ${extra
 rmSync(bundleDir, { recursive: true, force: true });
 cpSync(join(root, "apps/web/dist"), join(out, "web/dist"), { recursive: true });
 cpSync(join(root, "apps/web/functions/api/[[path]].ts"), join(out, "web/functions/api/[[path]].ts"));
-writeFileSync(join(out, "version.json"), `${JSON.stringify({ version: pkg.version, built_at: new Date().toISOString() }, null, 2)}\n`);
 
 // Safety net: no secrets or local dev values may ever ship in the package.
-const forbidden = [/pbkdf2-sha256\$\d+\$/, /TALORYS_ENV\s*=\s*development/, /talorys-dev-password/];
+const forbidden = [/pbkdf2-sha256\$\d+\$/, /TALORYS_ENV\s*=\s*development/, /talorys-dev-password/, /demo-task-1/, /demo-person-1/, /previewApi/];
 function scan(dir) {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
@@ -58,4 +57,6 @@ function scan(dir) {
 }
 scan(out);
 if (!existsSync(join(out, "web/dist/index.html"))) throw new Error("Frontend build missing");
+// A failed validation must never leave an installable template manifest behind.
+writeFileSync(join(out, "version.json"), `${JSON.stringify({ version: pkg.version, built_at: new Date().toISOString() }, null, 2)}\n`);
 console.log(`✓ Templates ready (${pkg.version})`);

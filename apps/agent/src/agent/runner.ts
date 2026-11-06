@@ -262,9 +262,13 @@ export class AgentRunner {
         return;
       }
       if (!text.trim()) {
-        text = tools.some((t) => t.plan)
-          ? "I've proposed a plan for you to review. Nothing is created until you confirm it."
-          : tools.some((t) => t.status === "success") ? "Done." : "I wasn't able to produce a response. Please try rephrasing.";
+        text = tools.some((t) => t.status === "error")
+          ? "No se han completado todas las operaciones. Revisa las acciones marcadas con error antes de intentarlo de nuevo."
+          : tools.some((t) => t.plan || t.approval)
+            ? "La propuesta necesita tu confirmación en la aplicación. Todavía no se ha ejecutado."
+            : tools.some((t) => t.status === "success")
+              ? "Las herramientas han terminado. Puedes consultar sus resultados en las acciones de este mensaje."
+              : "No he podido generar una respuesta ni confirmar ninguna acción. Inténtalo de nuevo.";
       }
       yield { type: "done", message: finish("complete", null) };
     } catch (error) {

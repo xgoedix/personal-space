@@ -16,3 +16,4 @@ test-results/
 
 # Independent hosted visual preview (its own source repository).
 preview-site/
+.personal-space/

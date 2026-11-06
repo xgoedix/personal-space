@@ -121,6 +121,12 @@ describe("wrangler output handling", () => {
 });
 
 describe("post-deploy verification", () => {
+  it("recognizes the Personal Space frontend without changing backend checks", async () => {
+    const branded = (async (url: string) => new URL(url).pathname === "/"
+      ? new Response("<!doctype html><title>Personal Space</title>") : fakeSite()(url)) as typeof fetch;
+    const checks = await runChecks("https://x.pages.dev", branded);
+    expect(checks.every(c => c.ok)).toBe(true);
+  });
   it("passes against a healthy deployment", async () => {
     const checks = await runChecks("https://x.pages.dev", fakeSite());
     expect(checks.every((c) => c.ok)).toBe(true);
