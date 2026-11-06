@@ -23,14 +23,17 @@ const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js');
 let operator;
 const state={sha,target:TARGET,startedAt:new Date().toISOString(),published:false};
 const save=(name,data)=>writeFileSync(join(directory,name),JSON.stringify(data,null,2)+'\n',{mode:0o600});
-const run=(name,command,arguments_,cwd=root)=>new Promise((resolve,reject)=>{
+const run=(name,command,arguments_,cwd=root,cloudflare=false)=>new Promise((resolve,reject)=>{
   console.log(name);
   const fd=openSync(join(directory,name.replaceAll(/[^a-zA-Z0-9.-]/g,'-')+'.log'),'w',0o600);
-  const child=spawn(command,arguments_,{cwd,stdio:['ignore',fd,fd],env:{...process.env,BICHO_RELEASE_SHA:sha,VITE_PERSONAL_PREVIEW:'false',WRANGLER_SEND_METRICS:'false',CLOUDFLARE_ACCOUNT_ID:TARGET.account}});
+  const environment={...process.env,BICHO_RELEASE_SHA:sha,VITE_PERSONAL_PREVIEW:'false',WRANGLER_SEND_METRICS:'false'};
+  if(cloudflare) environment.CLOUDFLARE_ACCOUNT_ID=TARGET.account;
+  else for(const key of ['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_API_TOKEN','CLOUDFLARE_API_KEY','CLOUDFLARE_EMAIL']) delete environment[key];
+  const child=spawn(command,arguments_,{cwd,stdio:['ignore',fd,fd],env:environment});
   child.on('error',error=>{closeSync(fd);reject(error);});
   child.on('exit',code=>{closeSync(fd);code===0?resolve():reject(new Error(`${name} failed; inspect the private release log`));});
 });
-const cli=(name,args,cwd=root)=>run(name,process.execPath,[wrangler,...args],cwd);
+const cli=(name,args,cwd=root)=>run(name,process.execPath,[wrangler,...args],cwd,true);
 async function json(url) {const response=await fetch(url,{headers:{'user-agent':'Mozilla/5.0'},cache:'no-store',signal:AbortSignal.timeout(30_000)});assert(response.ok,`HTTP ${response.status}: ${new URL(url).pathname}`);return response.json();}
 function cliJson(name) {return JSON.parse(readFileSync(join(directory,name+'.log'),'utf8'));}
 try {
