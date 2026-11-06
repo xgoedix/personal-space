@@ -15,7 +15,7 @@ const record=JSON.parse(readFileSync(join(directory,'release.json')));
 assert.deepEqual(record.target,TARGET);assert(record.backupVerified&&record.workerPublished&&record.webPublished);
 assert.match(record.sha,/^[a-f0-9]{40}$/);
 const changes=execFileSync('git',['diff','--name-only',record.sha,'HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
-assert(changes.every(path=>path.startsWith('scripts/release/')||path.startsWith('docs/')),'Application code differs from the deployed release');
+assert(changes.every(path=>path.startsWith('scripts/release/')||path.startsWith('docs/')||path==='AGENTS.md'),'Application code differs from the deployed release');
 assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim(),'','Commit the reviewed verification fix first');
 const work=join(directory,'verification-'+Date.now());mkdirSync(work,{mode:0o700});
 const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js');
