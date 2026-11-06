@@ -25,7 +25,7 @@ Las huellas de contraseña, secreto de sesiones, claves VAPID y credenciales MCP
 ## Pruebas ejecutadas
 
 - 908 pruebas unitarias: 31 compartidas, 744 backend, 58 web y 75 instalador.
-- 4 pruebas de las restricciones de publicación.
+- 6 pruebas del publicador y de restauración, incluidas las siguientes actualizaciones V3 con tokens Siri ya existentes.
 - 14 pruebas de navegador en escritorio y móvil, incluida actualización con borrador y sesión conservados.
 - Tipos, lint sin errores (advertencias CSS preexistentes), build y comprobación del paquete en un proyecto vacío.
 - En la URL principal, Workers AI ejecutó herramientas reales para crear una nota y una lista. La nota y la casilla marcada se recuperaron desde otra sesión; repetir la creación no duplicó elementos.

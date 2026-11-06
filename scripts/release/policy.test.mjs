@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkApproval, checkConfig, checkIdentity, compareSnapshots } from './policy.mjs';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 const config = JSON.parse(readFileSync(new URL('../../deploy/bicho/wrangler.jsonc', import.meta.url)));
 test('release requires exact approved commit and clean checkout', () => {
   const sha='a'.repeat(40); checkApproval(sha,sha,'');
@@ -23,4 +27,25 @@ test('missing sessions and changed push credentials block publication', () => {
   compareSnapshots(before,{...before,rows:[{table_name:'tal_sessions',row_data:JSON.stringify(["'existing'","'new'"])}]});
   assert.throws(()=>compareSnapshots(before,{...before,rows:[]}));
   assert.throws(()=>compareSnapshots(before,{...before,fingerprints:{secret:'changed'}}));
+});
+
+for(const version of [12,13]) test(`restore rehearsal retains existing Siri tokens on schema ${version}`, () => {
+  const directory=mkdtempSync(join(tmpdir(),'bicho-restore-test-'));
+  try {
+    const schema=[
+      {name:'tal_schema',type:'table',sql:'CREATE TABLE tal_schema (id INTEGER PRIMARY KEY,version INTEGER,updated_at TEXT)'},
+      {name:'tal_settings',type:'table',sql:'CREATE TABLE tal_settings (key TEXT PRIMARY KEY,value TEXT,updated_at TEXT)'},
+      {name:'tal_remote_tokens',type:'table',sql:'CREATE TABLE tal_remote_tokens (id TEXT PRIMARY KEY,token_hash TEXT'+(version===13?',capability TEXT':'')+')'},
+    ];
+    const columns={tal_schema:['id','version','updated_at'],tal_settings:['key','value','updated_at'],tal_remote_tokens:['id','token_hash',...(version===13?['capability']:[])]};
+    const rows=[
+      {table_name:'tal_schema',row_data:JSON.stringify(['1',String(version),"'2030-01-01'"])},
+      {table_name:'tal_remote_tokens',row_data:JSON.stringify(["'fixture-token'","'fictional-hash'",...(version===13?["'capture'"]:[])])},
+    ];
+    const snapshot=join(directory,'before.json');const migrations=join(directory,'migrations.json');
+    writeFileSync(snapshot,JSON.stringify({schema,columns,rows,kv:[],bookmark:'fixture-bookmark'}));
+    writeFileSync(migrations,JSON.stringify({targetVersion:13,statements:version===12?["ALTER TABLE tal_remote_tokens ADD COLUMN capability TEXT NOT NULL DEFAULT 'standard'"]:[]}));
+    execFileSync('python3',[fileURLToPath(new URL('./verify-snapshot.py',import.meta.url)),snapshot,migrations],{stdio:'pipe'});
+    assert.equal(JSON.parse(readFileSync(join(directory,'before.proof.json'))).v3_migration_preserves_existing_records,true);
+  } finally {rmSync(directory,{recursive:true,force:true});}
 });

@@ -41,13 +41,14 @@ if len(sys.argv)>2:
  target_version=13 if isinstance(migration,list) else migration['targetVersion']
  before={name:list(conn.execute('SELECT * FROM '+quote(name))) for name in counts if name not in ('tal_schema','tal_settings','tal_remote_tokens')}
  auth_before=list(conn.execute("SELECT * FROM tal_settings WHERE key != 'app.settings'"))
- tokens=list(conn.execute('SELECT * FROM tal_remote_tokens'))
+ token_projection=','.join(map(quote,data['columns']['tal_remote_tokens']))
+ tokens=list(conn.execute('SELECT '+token_projection+' FROM tal_remote_tokens'))
  with conn:
   for statement in statements: conn.execute(statement)
   conn.execute('UPDATE tal_schema SET version=? WHERE id=1',(target_version,))
  for name,rows in before.items(): assert rows==list(conn.execute('SELECT * FROM '+quote(name))),name
  assert auth_before==list(conn.execute("SELECT * FROM tal_settings WHERE key != 'app.settings'"))
- assert tokens==[row[:-1] for row in conn.execute('SELECT * FROM tal_remote_tokens')]
+ assert tokens==list(conn.execute('SELECT '+token_projection+' FROM tal_remote_tokens'))
  assert conn.execute('PRAGMA integrity_check').fetchall()==[('ok',)]
  assert conn.execute('PRAGMA foreign_key_check').fetchall()==[]
  proof['v3_migration_preserves_existing_records']=True
