@@ -6,7 +6,7 @@ import { Button } from "../components/ui";
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
-export function LoginPage({ configured }: { configured: boolean }) {
+export function LoginPage({ configured, enrollmentAvailable = false }: { configured: boolean; enrollmentAvailable?: boolean }) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const [password, setPassword] = useState("");
@@ -19,7 +19,7 @@ export function LoginPage({ configured }: { configured: boolean }) {
 
   // A locked tab must not keep showing the title of the conversation that was open.
   useEffect(() => {
-    document.title = "Personal Space";
+    document.title = "BichO";
   }, []);
 
   useEffect(() => {
@@ -58,11 +58,11 @@ export function LoginPage({ configured }: { configured: boolean }) {
       <div className="w-full max-w-[360px] animate-slide-up">
         <div className="mb-10 flex flex-col items-center text-center">
           <Logo className="h-12 w-12" />
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Personal Space</h1>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">BichO</h1>
           <p className="mt-1.5 text-sm text-fg-muted">Acceso privado</p>
         </div>
 
-        {!configured ? (
+        {enrollmentAvailable ? <EnrollmentForm /> : !configured ? (
           <div role="alert" className="rounded-lg border border-border bg-surface p-4 text-sm leading-6 text-fg-muted">
             Esta instalación aún no está configurada. Completa la configuración antes de iniciar sesión.
           </div>
@@ -112,4 +112,40 @@ export function LoginPage({ configured }: { configured: boolean }) {
       </div>
     </div>
   );
+}
+
+function EnrollmentForm() {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [request, setRequest] = useState<{ request_id: string; expires_at: string } | null>(null);
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (pending) return;
+    if (password !== confirmation) { setError("Las contraseñas no coinciden."); return; }
+    setPending(true); setError("");
+    try {
+      setRequest(await api("/auth/enrollment", { method: "POST", body: { password } }));
+    } catch (e) { setError(e instanceof Error ? e.message : "No se pudo solicitar el alta."); }
+    finally { setPassword(""); setConfirmation(""); setPending(false); }
+  }
+  if (request) return <div className="space-y-4 text-sm">
+    <h2 className="text-xl">Solicitud preparada</h2>
+    <p>Envía este identificador en el chat de Codex para que active tu solicitud. No es una contraseña y no permite entrar.</p>
+    <code className="block break-all rounded-xl bg-surface p-4 select-all">{request.request_id}</code>
+    <Button onClick={() => { void navigator.clipboard.writeText(request.request_id).catch(() => setError("Selecciona y copia el identificador.")); }}>Copiar identificador</Button>
+    <p>Caduca a las {new Date(request.expires_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}. Tras la activación, actualiza esta página e inicia sesión con tu contraseña.</p>
+    {error && <p role="alert">{error}</p>}
+    <Button variant="secondary" onClick={() => window.location.reload()}>Actualizar</Button>
+  </div>;
+  return <form onSubmit={submit} className="space-y-4">
+    <h2 className="text-xl">Tu acceso a la preview V3</h2>
+    <p className="text-sm text-fg-muted">Elige una contraseña nueva y guárdala en tu gestor. Esta solicitud requiere activación; la V2 conserva su acceso.</p>
+    <label className="block text-sm">Contraseña<input type="password" autoComplete="new-password" required minLength={10} maxLength={256} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-border bg-surface p-3" /></label>
+    <label className="block text-sm">Repetir contraseña<input type="password" autoComplete="new-password" required maxLength={256} value={confirmation} onChange={e => setConfirmation(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-border bg-surface p-3" /></label>
+    <p className="text-xs text-fg-muted">10 caracteres con letras y números o símbolos, o una frase de 16 caracteres. No escribas tu contraseña en el chat.</p>
+    {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+    <Button type="submit" loading={pending}>Solicitar acceso</Button>
+  </form>;
 }

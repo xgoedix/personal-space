@@ -44,6 +44,7 @@ export const scheduleSpecSchema = z.discriminatedUnion("type", [
     time: hhmm,
   }),
   z.object({ type: z.literal("monthly"), day: z.number().int().min(1).max(31), time: hhmm }),
+  z.object({ type: z.literal("yearly"), month: z.number().int().min(1).max(12), day: z.number().int().min(1).max(31), time: hhmm, timezone: z.literal("Europe/Madrid").optional() }).refine(v => isValidCalendarDate(2000, v.month, v.day), "Not a valid annual date"),
   z.object({ type: z.literal("interval"), minutes: z.number().int().min(15).max(60 * 24 * 31) }),
 ]);
 
@@ -154,6 +155,7 @@ function daysInMonth(year: number, month: number): number {
 
 /** Next run strictly after `after`, or null when the schedule will never fire again. */
 export function computeNextRun(spec: ScheduleSpec, timeZone: string, after: Date): Date | null {
+  if (spec.type === "yearly" && spec.timezone) timeZone = spec.timezone;
   if (spec.type === "interval") {
     return new Date(after.getTime() + spec.minutes * 60_000);
   }
@@ -177,6 +179,7 @@ export function computeNextRun(spec: ScheduleSpec, timeZone: string, after: Date
     if (spec.type === "daily") matches = true;
     else if (spec.type === "weekly") matches = spec.days.includes(weekday);
     else if (spec.type === "monthly") matches = d === Math.min(spec.day, daysInMonth(y, mo));
+    else if (spec.type === "yearly") matches = mo === spec.month && d === Math.min(spec.day, daysInMonth(y, mo));
     if (matches) {
       const t = zonedTimeToUtc(y, mo, d, h, mi, timeZone);
       if (t.getTime() > after.getTime()) return t;
@@ -235,6 +238,8 @@ export function describeSchedule(spec: ScheduleSpec): string {
     case "monthly":
       // Days past 28 run on the last day of months that are too short (see computeNextRun).
       return `Monthly on the ${ordinal(spec.day)} at ${spec.time}${spec.day > 28 ? ", or the last day of shorter months" : ""}`;
+    case "yearly":
+      return `Cada año el ${spec.day}/${spec.month} a las ${spec.time}${spec.month === 2 && spec.day === 29 ? " (28 de febrero en años no bisiestos)" : ""}`;
     case "interval":
       return describeInterval(spec.minutes);
   }

@@ -25,7 +25,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : "" };
   }
-  const title = typeof data.title === "string" && data.title ? data.title : "Talorys";
+  const title = typeof data.title === "string" && data.title ? data.title : "BichO";
   // Every push must show a notification; browsers revoke permission from silent pushes.
   event.waitUntil(
     self.registration.showNotification(title, {

@@ -44,6 +44,7 @@ export interface RemoteCaller {
   id: string;
   name: string;
   scope: RemoteScope;
+  capability?: "standard" | "capture";
 }
 
 /**
@@ -81,7 +82,7 @@ export class RemoteTokenService {
 
   list(): RemoteTokenInfo[] {
     return this.db.all<RemoteTokenInfo>(
-      `SELECT id, name, scope, hint, created_at, last_used_at FROM tal_remote_tokens ORDER BY created_at, rowid`,
+      `SELECT id, name, scope, hint, created_at, last_used_at, capability FROM tal_remote_tokens ORDER BY created_at, rowid`,
     );
   }
 
@@ -92,7 +93,8 @@ export class RemoteTokenService {
   async create(input: z.input<typeof remoteTokenCreateSchema>, sessionId?: string | null): Promise<RemoteTokenInfo & { token: string }> {
     const parsed = remoteTokenCreateSchema.safeParse(input);
     if (!parsed.success) throw ValidationError.fromZod(parsed.error);
-    const { name, scope } = parsed.data;
+    const { name, scope, capability } = parsed.data;
+    if (capability === "capture" && scope !== "write") throw new ValidationError("La conexión de Atajos necesita permiso de captura.");
     const secret = this.secret();
     if (!secret) throw new AppError("NOT_CONFIGURED", "SESSION_SECRET must be set (at least 32 characters) before creating remote access tokens.");
     if (!this.isEnabled()) throw new AppError("FORBIDDEN", "Remote access is turned off. Turn it on in Settings first.");
@@ -110,10 +112,10 @@ export class RemoteTokenService {
       if (this.db.one(`SELECT 1 AS x FROM tal_remote_tokens WHERE lower(trim(name)) = lower(?)`, name)) {
         throw new AppError("CONFLICT", "A token with this name already exists.");
       }
-      const info: RemoteTokenInfo = { id: newId(), name, scope, hint: token.slice(-4), created_at: now(), last_used_at: null };
+      const info: RemoteTokenInfo = { id: newId(), name, scope, ...(capability === "capture" ? { capability } : {}), hint: token.slice(-4), created_at: now(), last_used_at: null };
       this.db.run(
-        `INSERT INTO tal_remote_tokens (id, name, token_hash, hint, scope, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-        info.id, info.name, hash, info.hint, info.scope, info.created_at,
+        `INSERT INTO tal_remote_tokens (id, name, token_hash, hint, scope, created_at, capability) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        info.id, info.name, hash, info.hint, info.scope, info.created_at, capability ?? "standard",
       );
       return { ...info, token };
     });
@@ -141,7 +143,7 @@ export class RemoteTokenService {
     if (!row.last_used_at || nowMs - Date.parse(row.last_used_at) > TOUCH_INTERVAL_MS) {
       this.db.run(`UPDATE tal_remote_tokens SET last_used_at = ? WHERE id = ?`, new Date(nowMs).toISOString(), row.id);
     }
-    return { id: row.id, name: row.name, scope: row.scope };
+    return { id: row.id, name: row.name, scope: row.scope, ...(row.capability === "capture" ? { capability: "capture" as const } : {}) };
   }
 
   // ---------- Rate limiting ----------

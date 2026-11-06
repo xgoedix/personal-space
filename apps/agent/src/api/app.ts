@@ -1,4 +1,6 @@
 import type { RemoteScope } from "@talorys/shared";
+import { captureRoutes } from "../bicho/capture-routes";
+import { bichoRoutes } from "../bicho/routes";
 import { Hono } from "hono";
 import type { TalorysAgent } from "../agent/talorys-agent";
 import type { Env } from "../env";
@@ -20,7 +22,7 @@ export interface AppEnv {
   Variables: {
     sessionId: string | null;
     /** The validated access token behind a Bearer request; null for cookie and anonymous requests. */
-    remote: { id: string; name: string; scope: RemoteScope } | null;
+    remote: { id: string; name: string; scope: RemoteScope; capability?: "standard" | "capture" } | null;
   };
 }
 
@@ -46,6 +48,8 @@ export function createApi() {
   app.route("/auth", authRoutes);
   app.route("/", chatRoutes);
   app.route("/", dataRoutes);
+  app.route("/", bichoRoutes);
+  app.route("/", captureRoutes);
   app.route("/", automationRoutes);
   app.route("/", pushRoutes);
   app.route("/", remoteRoutes);

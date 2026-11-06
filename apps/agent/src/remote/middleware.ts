@@ -2,7 +2,7 @@ import type { Context, MiddlewareHandler } from "hono";
 import type { AppEnv } from "../api/app";
 import { AppError } from "../api/errors";
 import { clientId } from "../api/middleware";
-import { isRemoteAllowed, REMOTE_ID_PATTERN } from "./allowlist";
+import { isCaptureAllowed, isRemoteAllowed, REMOTE_ID_PATTERN } from "./allowlist";
 import type { RemoteCaller } from "./tokens";
 
 const BEARER = /^Bearer (\S+)$/;
@@ -80,7 +80,7 @@ export const remoteAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (write) await recordRequest(c, caller, 403);
     throw new AppError("FORBIDDEN", message);
   };
-  if (!isRemoteAllowed(method, new URL(c.req.url).pathname)) await deny("This route is not available to access tokens.");
+  if (!(caller.capability === "capture" ? isCaptureAllowed(method, new URL(c.req.url).pathname) : isRemoteAllowed(method, new URL(c.req.url).pathname))) await deny("This route is not available to access tokens.");
   if (caller.scope === "read" && write) await deny("This access token is read-only.");
   c.set("remote", caller);
   if (!write) return next();

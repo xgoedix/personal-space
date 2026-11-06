@@ -5,7 +5,7 @@ import { BrowserRouter } from "react-router";
 import "./styles/index.css";
 import "./personal/space.css";
 import { initTheme } from "./lib/theme";
-import { initLanguage } from "./lib/i18n";
+import { applyLanguage } from "./lib/i18n";
 import { App } from "./App";
 import { SessionProvider } from "./hooks/session";
 import { ToastProvider } from "./hooks/toast";
@@ -14,7 +14,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { reloadForNewVersion } from "./lib/chunkErrors";
 
 initTheme();
-initLanguage();
+applyLanguage("es");
 // Reuse Talorys' notification service worker; never cache private API responses.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {

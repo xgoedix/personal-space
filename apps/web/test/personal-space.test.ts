@@ -69,8 +69,8 @@ describe('Personal Space data boundaries', () => {
 import { buildSystemPrompt } from '../../agent/src/agent/prompt';
 it('instructs the real assistant to ask for essential missing information and use existing storage', () => {
   const prompt = buildSystemPrompt({agentName:'Talorys',timezone:'Europe/Madrid',now:new Date(),autoMemory:false,memories:[]});
-  expect(prompt).toContain('ask before saving');
+  expect(prompt).toContain('ask_clarification');
   expect(prompt).toContain('unless the corresponding tool succeeded');
-  expect(prompt).toContain('#personal-space/guardado');
-  expect(prompt).toContain('category person');
+  expect(prompt).toContain('save_link');
+  expect(prompt).toContain('categoría person');
 });

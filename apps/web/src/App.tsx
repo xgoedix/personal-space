@@ -1,3 +1,4 @@
+import { ListsPage, PeoplePage, SiriGuide, BichoAdvancedSettings } from "./personal/Bicho";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { useSession } from "./hooks/session";
@@ -13,7 +14,6 @@ const MemoryPage = lazy(() => import("./pages/MemoryPage"));
 const TasksPage = lazy(() => import("./pages/TasksPage"));
 const NotesPage = lazy(() => import("./pages/NotesPage"));
 const AutomationsPage = lazy(() => import("./pages/AutomationsPage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const McpOAuthCallback = lazy(() => import("./components/McpServersCard").then((m) => ({ default: m.McpOAuthCallback })));
 
 function FullScreen({ children }: { children: React.ReactNode }) {
@@ -42,15 +42,16 @@ export function App() {
       </FullScreen>
     );
   }
-  if (!session.authenticated) return <LoginPage configured={session.configured} />;
+  if (!session.authenticated) return <LoginPage configured={session.configured} enrollmentAvailable={session.enrollment_available} />;
 
   return (
     <Routes>
       <Route element={<SpaceShell />}>
         <Route index element={<HomePage />} />
         <Route path="today" element={<CollectionPage key="today" section="today" />} />
-        <Route path="people" element={<CollectionPage key="people" section="people" />} />
+        <Route path="people" element={<PeoplePage />} />
         <Route path="saved" element={<CollectionPage key="saved" section="saved" />} />
+        <Route path="lists" element={<ListsPage />} />
         <Route path="ideas" element={<CollectionPage key="ideas" section="ideas" />} />
         <Route path="chat/:conversationId?" element={<ChatPage />} />
         <Route path="memory" element={<Lazy><MemoryPage /></Lazy>} />
@@ -58,7 +59,8 @@ export function App() {
         <Route path="notes/:noteId?" element={<Lazy><NotesPage /></Lazy>} />
         <Route path="automations" element={<Lazy><AutomationsPage /></Lazy>} />
         <Route path="settings" element={<SpaceSettings />} />
-        <Route path="settings/advanced" element={<Lazy><SettingsPage /></Lazy>} />
+        <Route path="settings/siri" element={<SiriGuide />} />
+        <Route path="settings/advanced" element={<BichoAdvancedSettings />} />
         <Route path="settings/mcp-oauth" element={<Lazy><McpOAuthCallback /></Lazy>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

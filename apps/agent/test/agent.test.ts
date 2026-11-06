@@ -234,7 +234,7 @@ describe("AI failure handling", () => {
     expect(done.type).toBe("done");
     expect(done.message.status).toBe("cancelled");
     expect(stored?.status).toBe("cancelled");
-    expect(stored?.content).toBe("Partial ");
+      expect(stored?.content).toBe(""); // Unverified provider text is buffered until successful completion.
   });
 });
 

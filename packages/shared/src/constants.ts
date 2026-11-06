@@ -10,7 +10,7 @@ export const AGENT_INSTANCE_NAME = "personal-agent";
 export const DEFAULT_MODEL = "@cf/zai-org/glm-4.7-flash";
 
 export const BACKUP_FORMAT = "talorys-backup";
-export const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2;
 
 export const SESSION_COOKIE = "__Host-talorys_session";
 export const DEV_SESSION_COOKIE = "talorys_session";

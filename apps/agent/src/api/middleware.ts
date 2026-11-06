@@ -5,7 +5,7 @@ import type { AppEnv } from "./app";
 import { AppError, ValidationError } from "./errors";
 
 /** Routes reachable without a session. Nothing here can claim ownership or read owner data. */
-const PUBLIC_ROUTES = new Set(["GET /api/health", "POST /api/auth/login", "GET /api/auth/session"]);
+const PUBLIC_ROUTES = new Set(["GET /api/health", "POST /api/auth/login", "GET /api/auth/session", "POST /api/auth/enrollment"]);
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 

@@ -57,7 +57,7 @@ export function ApprovalCard({ action: initial }: { action: PendingAction }) {
         <div className="min-w-0">
           <p className="break-words font-medium text-fg">{action.summary}?</p>
           <p className="text-xs text-fg-muted">
-            {external ? "Esto envía los detalles a un servicio externo. Talorys no puede deshacer sus acciones." : "Nada cambia hasta que lo apruebes."}
+            {external ? "Esto envía los detalles a un servicio externo. BichO no puede deshacer sus acciones." : "Nada cambia hasta que lo apruebes."}
           </p>
         </div>
       </div>

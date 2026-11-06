@@ -35,6 +35,8 @@ interface SessionRow {
 }
 
 export interface AuthSecrets {
+  installationId?: string;
+  enrollment?: string;
   passwordHash?: string;
   /** Plain owner password, for deploys that cannot hash it ahead of time. Used only without a valid passwordHash. */
   password?: string;
@@ -59,6 +61,53 @@ export class AuthService {
     private readonly settings: SettingsService,
     private readonly secrets: AuthSecrets,
   ) {}
+
+  /** Preview-only proposals cannot claim ownership. Activation requires an existing owner session. */
+  enrollmentAvailable(): boolean {
+    return this.isConfigured() && this.secrets.enrollment === "1"
+      && /^biv3[a-z0-9]{8}$/.test(this.secrets.installationId ?? "")
+      && !this.settings.getJson<boolean>("auth.enrollment_closed");
+  }
+
+  async proposeEnrollment(password: string): Promise<{ request_id: string; expires_at: string }> {
+    if (!this.enrollmentAvailable()) throw new AppError("NOT_FOUND", "El alta no está disponible.");
+    const problem = checkPasswordStrength(password);
+    if (problem) throw new ValidationError("Usa al menos 10 caracteres con letras y números o símbolos, o una frase de 16 caracteres.");
+    await this.syncSecretFingerprint();
+    if (!this.enrollmentAvailable()) throw new AppError("NOT_FOUND", "El alta está cerrada.");
+    const key = "auth.enrollment_requests";
+    const requests = (this.settings.getJson<{ id: string; expires: number; hash: string | null }[]>(key) ?? []).filter(r => r.expires > Date.now());
+    if (requests.length >= 5) throw new AppError("RATE_LIMITED", "Espera 15 minutos antes de solicitar el alta de nuevo.");
+    const request = { id: crypto.randomUUID(), expires: Date.now() + 15 * 60_000, hash: null as string | null };
+    requests.push(request);
+    // Reserve synchronously before PBKDF2 so concurrent requests cannot bypass the global cap.
+    this.settings.setJson(key, requests);
+    const hash = await hashPassword(password);
+    if (!this.enrollmentAvailable()) throw new AppError("NOT_FOUND", "El alta está cerrada.");
+    const current = this.settings.getJson<typeof requests>(key) ?? [];
+    const pending = current.find(r => r.id === request.id && r.expires > Date.now());
+    if (!pending) throw new AppError("CONFLICT", "La solicitud ha caducado.");
+    pending.hash = hash;
+    this.settings.setJson(key, current);
+    return { request_id: request.id, expires_at: new Date(request.expires).toISOString() };
+  }
+
+  approveEnrollment(requestId: string, ownerSession: string | null): void {
+    if (!ownerSession || !this.db.one(`SELECT id FROM tal_sessions WHERE id = ? AND expires_at > ?`, ownerSession, new Date().toISOString()))
+      throw new AppError("UNAUTHORIZED", "Se necesita una sesión del propietario.");
+    if (!this.enrollmentAvailable()) throw new AppError("NOT_FOUND", "El alta no está disponible.");
+    const requests = this.settings.getJson<{ id: string; expires: number; hash: string | null }[]>("auth.enrollment_requests") ?? [];
+    const request = requests.find(r => r.id === requestId && r.expires > Date.now() && isPasswordHash(r.hash));
+    if (!request) throw new AppError("NOT_FOUND", "La solicitud no existe o ha caducado. Crea otra desde el iPhone.");
+    this.db.transaction(() => {
+      this.settings.setJson(OVERRIDE_KEY, request.hash);
+      this.settings.setJson("auth.enrollment_closed", true);
+      this.settings.delete("auth.enrollment_requests");
+      this.db.run(`DELETE FROM tal_sessions`);
+      this.db.run(`DELETE FROM tal_remote_tokens`);
+      this.db.run(`DELETE FROM tal_login_attempts`);
+    });
+  }
 
   private secretHash(): string | null {
     return isPasswordHash(this.secrets.passwordHash) ? this.secrets.passwordHash! : null;

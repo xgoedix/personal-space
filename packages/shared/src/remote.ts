@@ -13,6 +13,7 @@ export const REMOTE_TOKEN_PREFIX = "tal_";
 export const remoteTokenCreateSchema = z.object({
   name: z.string().trim().min(1).max(64),
   scope: z.enum(REMOTE_SCOPES).optional().default("read"),
+  capability: z.enum(["standard", "capture"]).optional(),
 });
 
 export const remoteStatusSchema = z.object({ enabled: z.boolean() });
@@ -22,6 +23,7 @@ export interface RemoteTokenInfo {
   id: string;
   name: string;
   scope: RemoteScope;
+  capability?: "standard" | "capture";
   /** Last 4 characters of the token, shown as `tal_…abcd`. */
   hint: string;
   created_at: string;

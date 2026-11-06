@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: { cli: "src/cli.ts", staging: "src/staging.ts" },
+  entry: { cli: "src/cli.ts", staging: "src/staging.ts", v3: "src/v3.ts", "v3-mobile": "src/v3-mobile.ts" },
   format: ["esm"],
   platform: "node",
   target: "node20",

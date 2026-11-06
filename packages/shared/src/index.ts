@@ -7,3 +7,5 @@ export * from "./push";
 export * from "./remote";
 export * from "./plans";
 export * from "./mcp";
+
+export * from "./bicho";

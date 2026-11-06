@@ -8,6 +8,8 @@ export type ToolPermission = "read" | "write" | "destructive";
 export interface ToolContext {
   services: Services;
   timezone: string;
+  /** Actual owner text, supplied by the runner rather than by the model. */
+  ownerInput?: string;
   /** "chat" for interactive turns; "scheduled" for automation runs (read-only + notify). */
   mode: "chat" | "scheduled";
   /** The chat conversation, which owns any destructive actions proposed during the turn. */

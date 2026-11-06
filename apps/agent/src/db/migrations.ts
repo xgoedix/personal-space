@@ -397,6 +397,23 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE tal_pending_actions ADD COLUMN result TEXT`,
     ],
   },
+  {
+    version: 13,
+    name: "BichO structured lists birthdays calendar and capture",
+    statements: [
+      `UPDATE tal_settings SET value=json_set(value,'$.agentName','BichO','$.language','es') WHERE key='app.settings' AND json_valid(value)`,
+      `CREATE TABLE tal_lists (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+      `CREATE TABLE tal_list_items (id TEXT PRIMARY KEY, list_id TEXT NOT NULL REFERENCES tal_lists(id) ON DELETE CASCADE, text TEXT NOT NULL, text_key TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0, position INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(list_id,text_key))`,
+      `CREATE INDEX tal_list_items_order ON tal_list_items(list_id,position)`,
+      `CREATE TABLE tal_birthdays (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, month INTEGER NOT NULL, day INTEGER NOT NULL, birth_year INTEGER, notes TEXT NOT NULL DEFAULT '', automation_id TEXT UNIQUE REFERENCES tal_automations(id) ON DELETE SET NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+      `CREATE TABLE tal_saved_links (note_id TEXT PRIMARY KEY REFERENCES tal_notes(id) ON DELETE CASCADE, url TEXT NOT NULL UNIQUE, price TEXT NOT NULL DEFAULT '', image_url TEXT NOT NULL DEFAULT '', comments TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL)`,
+      `CREATE TABLE tal_calendar_events (id TEXT PRIMARY KEY, title TEXT NOT NULL, start_at TEXT NOT NULL, end_at TEXT NOT NULL, timezone TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '', sync_key TEXT NOT NULL UNIQUE, apple_status TEXT NOT NULL DEFAULT 'pending', apple_id TEXT, calendar_name TEXT, attempt_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+      `ALTER TABLE tal_remote_tokens ADD COLUMN capability TEXT NOT NULL DEFAULT 'standard'`,
+      `CREATE TABLE tal_captures (id TEXT PRIMARY KEY, token_id TEXT NOT NULL, request_hash TEXT NOT NULL, status TEXT NOT NULL, response TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+      `CREATE TABLE tal_calendar_exports (event_id TEXT NOT NULL REFERENCES tal_calendar_events(id) ON DELETE CASCADE, token_id TEXT NOT NULL REFERENCES tal_remote_tokens(id) ON DELETE CASCADE, PRIMARY KEY(event_id,token_id))`,
+      `CREATE INDEX tal_capture_daily ON tal_captures(token_id,created_at)`,
+    ],
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

@@ -104,7 +104,7 @@ describe("chat (mock provider)", () => {
     const types = events.map((e) => e.type);
     expect(types[0]).toBe("title");
     expect(types).toContain("start");
-    expect(types.filter((t) => t === "text").length).toBeGreaterThan(1);
+    expect(types.filter((t) => t === "text")).toHaveLength(1); // V3 buffers prose until real tool results are known.
     const tools = events.filter((e) => e.type === "tool");
     expect(tools.map((t) => t.tool.status)).toEqual(["running", "success"]);
     const done = events.at(-1);
@@ -240,7 +240,7 @@ describe("settings, usage, export and import", () => {
 
   it("stores the UI language and returns it with the session", async () => {
     const c = await loggedIn();
-    expect((await c.json("/api/settings")).settings.language).toBe("system");
+    expect((await c.json("/api/settings")).settings.language).toBe("es");
     expect((await c.call("/api/settings", { method: "PATCH", body: { language: "xx" } })).status).toBe(400);
     await c.json("/api/settings", { method: "PATCH", body: { language: "en" } });
     expect(await c.json("/api/auth/session")).toMatchObject({ authenticated: true, language: "en" });
@@ -263,7 +263,7 @@ describe("settings, usage, export and import", () => {
     const text = await res.text();
     expect(text).not.toMatch(/pbkdf2|tal_sessions|session_secret|password_override/i);
     const backup = JSON.parse(text);
-    expect(backup).toMatchObject({ format: "talorys-backup", version: 1 });
+    expect(backup).toMatchObject({ format: "talorys-backup", version: 2 });
 
     // Wipe a task, then import twice: restored once, no duplicates.
     const task = backup.data.tasks.find((t: any) => t.title === "Backup me");
