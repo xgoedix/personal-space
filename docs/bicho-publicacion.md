@@ -68,3 +68,11 @@ Comprobaciones físicas pendientes para cada cambio relevante:
 - Autorizar Calendario en Atajos y comprobar un evento sin duplicados. La web no tiene acceso directo a EventKit.
 
 Las instrucciones de Siri y Calendar están en [bicho-v3-atajos.md](bicho-v3-atajos.md). Los tokens de una preview pertenecen a esa instalación: no se copian a la principal. Una vez configurado el Atajo para la URL permanente, las publicaciones conservan sus tokens y configuración.
+
+Si el código y la web ya se publicaron y solo falló el comprobador, puede repetirse únicamente la verificación:
+
+```sh
+node scripts/release/verify-published.mjs .personal-space/releases/FECHA-SHA --notify-test
+```
+
+Este comando exige que coincidan el SHA servido y la versión del Worker del informe, y que desde ese SHA solo hayan cambiado scripts de comprobación o documentación. No despliega ni vuelve a ejecutar migraciones. Registra por separado el commit publicado y el del comprobador. Solo añade `--notify-test` si está autorizada otra notificación de prueba.

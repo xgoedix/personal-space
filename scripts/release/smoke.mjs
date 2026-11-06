@@ -67,7 +67,7 @@ export async function smoke(operator, notify=false) {
       }
     }
     report.push(remote.enabled?'Siri remote access remains enabled':'Siri remote access remains disabled, as before release; owner setup required');
-    const anonymous=await fetch(TARGET.origin+'/api/capture',{method:'POST',headers:{'content-type':'application/json','user-agent':'Mozilla/5.0'},body:JSON.stringify({request_id:randomUUID(),text:'Prueba anónima'})});assert.equal(anonymous.status,401);
+    const anonymous=await fetch(TARGET.origin+'/api/capture',{method:'POST',headers:{'content-type':'application/json','user-agent':'Mozilla/5.0','x-talorys-request':'1',origin:TARGET.origin},body:JSON.stringify({request_id:randomUUID(),text:'Prueba anónima'})});assert.equal(anonymous.status,401);
     if(notify) {
       const push=await json('/push/test','POST');assert.equal(push.result.failed,0);assert.equal(push.result.gone,0);assert(push.result.sent>0,'Push provider did not accept any test delivery');
       report.push(`Push provider accepted ${push.result.sent} test notification(s); physical iPhone receipt pending`);
