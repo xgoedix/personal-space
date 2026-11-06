@@ -19,7 +19,7 @@ export function LoginPage({ configured }: { configured: boolean }) {
 
   // A locked tab must not keep showing the title of the conversation that was open.
   useEffect(() => {
-    document.title = "Talorys";
+    document.title = "Personal Space";
   }, []);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function LoginPage({ configured }: { configured: boolean }) {
       <div className="w-full max-w-[360px] animate-slide-up">
         <div className="mb-10 flex flex-col items-center text-center">
           <Logo className="h-12 w-12" />
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Talorys</h1>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Personal Space</h1>
           <p className="mt-1.5 text-sm text-fg-muted">{t("login.tagline")}</p>
         </div>
 

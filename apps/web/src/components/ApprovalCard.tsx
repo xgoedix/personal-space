@@ -8,10 +8,10 @@ import { api } from "../lib/api";
 import { cn } from "../lib/utils";
 
 const APPROVAL_DONE: Record<Exclude<PendingAction["status"], "pending">, string> = {
-  approved: "Approved and done",
-  cancelled: "Declined — nothing was changed",
-  expired: "Expired — ask again if you still want this",
-  failed: "Approved, but it failed",
+  approved: "Aprobado y realizado",
+  cancelled: "Rechazado. No se ha cambiado nada",
+  expired: "Solicitud caducada. Vuelve a pedirlo si lo necesitas",
+  failed: "Aprobado, pero la acción ha fallado",
 };
 
 /** The only way a destructive action, or an external MCP call that asks first, proposed by the agent can run. */
@@ -51,23 +51,23 @@ export function ApprovalCard({ action: initial }: { action: PendingAction }) {
     );
   }
   return (
-    <div role="group" aria-label="Approval needed" className="rounded-lg border border-warning/40 bg-surface px-3 py-2.5 shadow-sm">
+    <div role="group" aria-label="Necesita tu aprobación" className="rounded-lg border border-warning/40 bg-surface px-3 py-2.5 shadow-sm">
       <div className="flex items-start gap-2 text-sm">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
         <div className="min-w-0">
           <p className="break-words font-medium text-fg">{action.summary}?</p>
           <p className="text-xs text-fg-muted">
-            {external ? "This sends the details below to an external service. Talorys can't undo what it does there." : "Nothing changes unless you approve."}
+            {external ? "Esto envía los detalles a un servicio externo. Talorys no puede deshacer sus acciones." : "Nada cambia hasta que lo apruebes."}
           </p>
         </div>
       </div>
       {action.preview !== undefined && (
         <div className="mt-2">
-          <p className="text-xs font-medium text-fg-muted">{external ? "What it will send" : "New text, in full"}</p>
+          <p className="text-xs font-medium text-fg-muted">{external ? "Datos que se enviarán" : "Texto completo que se guardará"}</p>
           {/* Plain text, never rendered as Markdown: this is exactly what will be saved. */}
           <div
             role="region"
-            aria-label={external ? "Arguments to send" : "Proposed text"}
+            aria-label={external ? "Datos que se enviarán" : "Texto propuesto"}
             // biome-ignore lint/a11y/noNoninteractiveTabindex: lets keyboard users scroll a long proposal.
             tabIndex={0}
             className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-subtle p-2 text-xs text-fg"
@@ -78,10 +78,10 @@ export function ApprovalCard({ action: initial }: { action: PendingAction }) {
       )}
       <div className="mt-2.5 flex justify-end gap-2">
         <Button size="sm" variant="ghost" disabled={decide.isPending} onClick={() => decide.mutate("cancel")}>
-          Decline
+          Rechazar
         </Button>
         <Button size="sm" variant="danger" loading={decide.isPending && decide.variables === "approve"} disabled={decide.isPending} onClick={() => decide.mutate("approve")}>
-          Approve
+          Aprobar
         </Button>
       </div>
     </div>

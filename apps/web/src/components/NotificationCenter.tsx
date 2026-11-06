@@ -1,5 +1,5 @@
 import { BellOff, Trash2 } from "lucide-react";
-import { Button, Dialog, EmptyState, Spinner } from "./ui";
+import { Button, Dialog, EmptyState, Spinner, ErrorNotice } from "./ui";
 import { Markdown } from "./Markdown";
 import { keys, useApiMutation, useNotifications } from "../hooks/queries";
 import { api } from "../lib/api";
@@ -10,7 +10,7 @@ import { useI18n } from "../lib/i18n";
 export function NotificationCenter({ open, onClose }: { open: boolean; onClose: () => void }) {
   const i18n = useI18n();
   const { t } = i18n;
-  const { data, isLoading } = useNotifications();
+  const { data, isLoading, error, refetch } = useNotifications();
   const markRead = useApiMutation((id?: string) => api("/notifications/read", { method: "POST", body: id ? { id } : {} }), {
     invalidate: [keys.notifications],
   });
@@ -34,6 +34,8 @@ export function NotificationCenter({ open, onClose }: { open: boolean; onClose: 
         <div className="flex justify-center py-10">
           <Spinner />
         </div>
+      ) : error ? (
+        <ErrorNotice error={error} onRetry={() => void refetch()} />
       ) : !data?.notifications.length ? (
         <EmptyState icon={<BellOff className="h-8 w-8" />} title={t("notifications.empty")}>
           {t("notifications.emptyHint")}

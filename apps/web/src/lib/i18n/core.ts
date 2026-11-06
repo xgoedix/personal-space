@@ -1,6 +1,7 @@
 import { type Language, LANGUAGES } from "@talorys/shared";
 import { en } from "./en";
 import { ko } from "./ko";
+import { es } from "./es";
 
 type PluralCategory = Intl.LDMLPluralRule;
 /** A message whose form depends on {count}. "other" is required because every language has it. */
@@ -25,7 +26,7 @@ type ParamName<K extends MessageKey> = Placeholders<MessageText<Messages[K]>> | 
  */
 export type MessageParams<K extends MessageKey, V> = [ParamName<K>] extends [never] ? [] : [params: Record<ParamName<K>, V | number>];
 
-const translations: Record<Language, Translation> = { en, ko };
+const translations: Record<Language, Translation> = { en, ko, es };
 
 const pluralRules = new Map<string, Intl.PluralRules>();
 const numberFormats = new Map<string, Intl.NumberFormat>();

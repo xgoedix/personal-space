@@ -1,3 +1,11 @@
+# Personal Space · V1
+
+Rediseño independiente de Talorys, pensado para iPhone. [Preview privada](https://personal-space-diego-v1.lloragu.chatgpt.site) · [Arquitectura, funcionamiento y límites](docs/personal-space-v1.md).
+
+La preview contiene datos ficticios y no conecta con ninguna instalación de Talorys. La rama de desarrollo es `codex/personal-space-v1`; no se ha desplegado en producción.
+
+---
+
 # Talorys
 
 **Your personal AI agent. Your own cloud.**

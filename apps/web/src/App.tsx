@@ -1,7 +1,8 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { useSession } from "./hooks/session";
-import { AppShell } from "./components/AppShell";
+import { SpaceShell } from "./personal/Shell";
+import { HomePage, CollectionPage, SpaceSettings } from "./personal/Pages";
 import { LoginPage } from "./pages/LoginPage";
 import { ChatPage } from "./pages/ChatPage";
 import { Spinner, ErrorNotice } from "./components/ui";
@@ -45,16 +46,21 @@ export function App() {
 
   return (
     <Routes>
-      <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/chat" replace />} />
+      <Route element={<SpaceShell />}>
+        <Route index element={<HomePage />} />
+        <Route path="today" element={<CollectionPage key="today" section="today" />} />
+        <Route path="people" element={<CollectionPage key="people" section="people" />} />
+        <Route path="saved" element={<CollectionPage key="saved" section="saved" />} />
+        <Route path="ideas" element={<CollectionPage key="ideas" section="ideas" />} />
         <Route path="chat/:conversationId?" element={<ChatPage />} />
         <Route path="memory" element={<Lazy><MemoryPage /></Lazy>} />
         <Route path="tasks" element={<Lazy><TasksPage /></Lazy>} />
         <Route path="notes/:noteId?" element={<Lazy><NotesPage /></Lazy>} />
         <Route path="automations" element={<Lazy><AutomationsPage /></Lazy>} />
-        <Route path="settings" element={<Lazy><SettingsPage /></Lazy>} />
+        <Route path="settings" element={<SpaceSettings />} />
+        <Route path="settings/advanced" element={<Lazy><SettingsPage /></Lazy>} />
         <Route path="settings/mcp-oauth" element={<Lazy><McpOAuthCallback /></Lazy>} />
-        <Route path="*" element={<Navigate to="/chat" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );
