@@ -36,6 +36,36 @@ export async function smoke(operator, notify=false) {
     const again=(await json('/birthdays','POST',{name:marker,day:18,month:5})).birthday;assert.equal(again.automation_id,birthday.automation_id);
     report.push('Birthday, Madrid time, single linked annual reminder');
     const remote=await json('/remote/status');
+    const existingTokens=(await json('/remote/tokens')).tokens;
+    if(remote.enabled || existingTokens.length===0) {
+      let remoteId; let captureToken='';
+      try {
+        if(!remote.enabled) await json('/remote/status','PATCH',{enabled:true});
+        const connection=(await json('/remote/tokens','POST',{name:marker,scope:'write',capability:'capture'})).token;
+        remoteId=connection.id;captureToken=connection.token;
+        const remoteCall=async(path,method='GET',body)=>fetch(TARGET.origin+'/api'+path,{method,headers:{authorization:`Bearer ${captureToken}`,'content-type':'application/json','user-agent':'Mozilla/5.0'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(30_000)});
+        const request={request_id:randomUUID(),text:`Guarda una nota titulada Siri ${marker} que diga comprar un regalo ficticio.`};
+        let response=await remoteCall('/capture','POST',request);assert(response.ok);
+        let capture=await response.json();
+        const deadline=Date.now()+150_000;
+        while(capture.status==='running' && Date.now()<deadline) {
+          await new Promise(resolve=>setTimeout(resolve,2000));
+          response=await remoteCall('/capture/'+request.request_id);assert(response.ok);capture=await response.json();
+        }
+        assert.equal(capture.status,'complete','Siri capture did not complete');
+        assert(capture.actions.some(action=>action.tool==='create_note'));
+        const saved=(await json('/notes')).notes.find(note=>note.title===`Siri ${marker}`);assert(saved);created.push(['/notes/'+saved.id,undefined]);
+        const replay=await (await remoteCall('/capture','POST',request)).json();assert.deepEqual(replay,capture);
+        assert.equal((await json('/notes')).notes.filter(note=>note.title===`Siri ${marker}`).length,1);
+        await json('/remote/tokens/'+remoteId,'DELETE');remoteId=undefined;
+        assert.equal((await remoteCall('/capture/'+request.request_id)).status,401);
+        report.push('Siri capture API: real AI note, persistence, duplicate prevention and token revocation');
+      } finally {
+        if(remoteId) await json('/remote/tokens/'+remoteId,'DELETE');
+        captureToken='';
+        if(!remote.enabled) await json('/remote/status','PATCH',{enabled:false});
+      }
+    }
     report.push(remote.enabled?'Siri remote access remains enabled':'Siri remote access remains disabled, as before release; owner setup required');
     const anonymous=await fetch(TARGET.origin+'/api/capture',{method:'POST',headers:{'content-type':'application/json','user-agent':'Mozilla/5.0'},body:JSON.stringify({request_id:randomUUID(),text:'Prueba anónima'})});assert.equal(anonymous.status,401);
     if(notify) {

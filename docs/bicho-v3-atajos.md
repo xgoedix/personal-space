@@ -2,7 +2,7 @@
 
 Estos atajos usan exclusivamente tu instalación BichO y las acciones nativas de Apple. No usan ChatGPT, servicios puente ni una suscripción. Requieren internet. La configuración de Siri y Calendario **debe probarse en el iPhone**; las pruebas automáticas del servidor no acreditan permisos ni creación de eventos en Apple.
 
-Durante las pruebas usa la URL de la **preview V3**, no la de V2. Tras aprobar la actualización, el origen definitivo será `https://talorys-psstta2bu4wy-web.pages.dev`. Los tokens de la preview no se trasladan a V2.
+Para la instalación principal de BichO utiliza `https://talorys-psstta2bu4wy-web.pages.dev`. Las futuras versiones aprobadas conservan ese origen y los tokens creados allí. La preview es independiente: sus tokens no se trasladan a la instalación principal.
 
 ## 1. Conexión privada
 
@@ -17,7 +17,7 @@ Abre **Atajos → +** y usa ese nombre. Siri invoca el nombre del atajo: «Oye S
 Añade estas acciones, en orden. Los nombres pueden variar ligeramente con el idioma o versión de iOS. Selecciona las variables indicadas desde las variables mágicas, no escribas sus nombres como texto literal.
 
 1. **Texto**: pega el token. **Establecer variable** → `Token`.
-2. **Texto**: tu origen HTTPS de la preview, sin `/` final. **Establecer variable** → `Base`.
+2. **Texto**: `https://talorys-psstta2bu4wy-web.pages.dev`, sin `/` final. **Establecer variable** → `Base`.
 3. **Solicitar entrada**: texto, pregunta «¿Qué quieres apuntar?». **Establecer variable** → `Instruccion`.
 4. **Generar UUID**. **Establecer variable** → `Solicitud`. Se genera una sola vez por instrucción, nunca dentro del bucle.
 5. **URL**: `[Base]/api/capture`. **Obtener contenido de URL**:
@@ -74,7 +74,7 @@ No hay sincronización bidireccional: editar o borrar en Apple no cambia BichO, 
 
 ## 4. Prueba en iPhone
 
-- Instala la **preview V3** desde Safari → Compartir → Añadir a pantalla de inicio. Las suscripciones push de V2 pertenecen a otro origen; activa esta preview por separado.
+- Abre el icono que ya tienes instalado para la URL principal. No lo elimines ni reinstales. Si pruebas una preview aislada, sus permisos y suscripciones son independientes.
 - Crea por voz una nota, cierra la app y vuelve a entrar: debe permanecer.
 - Crea una lista con tres elementos; marca uno y vuelve a abrirla desde otro dispositivo.
 - Di «El cumpleaños de Persona Prueba es el 18 de mayo»: Personas debe mostrar un único aviso anual a las 11:00 Madrid. Repítelo y comprueba que no aparece otro.
