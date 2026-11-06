@@ -29,6 +29,12 @@ test("acceso privado en español y navegación de cinco secciones @mobile", asyn
   for (const section of ["HOY", "PERSONAS", "GUARDADO", "IDEAS", "LISTAS"])
     await expect(page.getByRole("link", { name: new RegExp(`^${section}`) })).toBeVisible();
   await expect(page.getByRole("link", { name: "Cuéntame algo..." })).toBeVisible();
+  await page.getByRole("link", { name: /^HOY/ }).click();
+  const reminders = page.getByRole("link", { name: "Ver todos y editar" });
+  await expect(reminders).toHaveAttribute("href", "/automations");
+  await reminders.click();
+  await expect(page).toHaveURL(/\/automations$/);
+  await expect(page.locator("main")).toBeVisible();
 });
 
 test("listas: casillas, orden, edición y confirmación de borrado persisten @mobile", async ({ page }) => {

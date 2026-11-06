@@ -173,6 +173,7 @@ async function execute(
 			services: s,
 			timezone: settings.timezone,
 			ownerInput: message,
+			ownerInputAt: new Date(),
 			mode: "chat",
 			signal: controller.signal,
 		},

@@ -10,6 +10,8 @@ export interface ToolContext {
   timezone: string;
   /** Actual owner text, supplied by the runner rather than by the model. */
   ownerInput?: string;
+  /** Receipt time of that message, so slow inference cannot cross the overnight boundary. */
+  ownerInputAt?: Date;
   /** "chat" for interactive turns; "scheduled" for automation runs (read-only + notify). */
   mode: "chat" | "scheduled";
   /** The chat conversation, which owns any destructive actions proposed during the turn. */

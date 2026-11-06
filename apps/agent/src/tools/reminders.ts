@@ -1,3 +1,4 @@
+import { overnightReminderQuestion } from "../bicho/reminder-intent";
 import { scheduleSpecSchema } from "@talorys/shared";
 import { z } from "zod";
 import { defineTool, quoteTitle, ToolError } from "./registry";
@@ -18,6 +19,8 @@ export const reminderTools = [
     }),
     label: (i) => `Setting reminder “${i.message}”`,
     execute: async (i, ctx) => {
+      const question = overnightReminderQuestion(ctx.ownerInput, ctx.timezone, ctx.ownerInputAt);
+      if (question) return { question };
       let at = i.at;
       if (!at && i.in_minutes) at = toLocalMinute(new Date(Date.now() + i.in_minutes * 60_000 + 59_000), ctx.timezone);
       if (!at) throw new ToolError("Provide 'at' or 'in_minutes'.");
@@ -51,6 +54,8 @@ export const reminderTools = [
     }),
     label: (i) => `Scheduling “${i.name}”`,
     execute: async (i, ctx) => {
+      const question = i.kind === "reminder" ? overnightReminderQuestion(ctx.ownerInput, ctx.timezone, ctx.ownerInputAt) : null;
+      if (question) return { question };
       const a = await ctx.services.automations.create({
         name: i.name,
         kind: i.kind,

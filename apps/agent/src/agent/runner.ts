@@ -211,7 +211,7 @@ export class AgentRunner {
       // never shadow one; MCP tools share the same budget, caps, validation and approvals.
       executor = new ToolExecutor(
         [...(this.ext?.tools ?? ALL_TOOLS), ...this.mcpTools],
-        { services: s, timezone: settings.timezone, ownerInput: userMessage.content, mode: "chat", conversationId: conversation.id, signal: input.signal },
+        { services: s, timezone: settings.timezone, ownerInput: userMessage.content, ownerInputAt: new Date(userMessage.created_at), mode: "chat", conversationId: conversation.id, signal: input.signal },
         { maxToolCalls: limits.maxToolCalls },
       );
       const providerTools = toProviderTools(executor).map(tool => ({ ...tool, execute: async (args: unknown, callId: string) => {
