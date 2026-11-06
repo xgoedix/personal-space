@@ -7,6 +7,7 @@ import "./personal/space.css";
 import { initTheme } from "./lib/theme";
 import { applyLanguage } from "./lib/i18n";
 import { App } from "./App";
+import { UpdateNotice } from "./components/UpdateNotice";
 import { SessionProvider } from "./hooks/session";
 import { ToastProvider } from "./hooks/toast";
 import { ApiError } from "./lib/api";
@@ -17,7 +18,7 @@ initTheme();
 applyLanguage("es");
 // Reuse Talorys' notification service worker; never cache private API responses.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+  void navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => {
     // The app stays usable online; push setup reports availability in Settings.
   });
 }
@@ -45,6 +46,7 @@ createRoot(document.getElementById("root")!).render(
           <SessionProvider>
             <ErrorBoundary>
               <App />
+              <UpdateNotice />
             </ErrorBoundary>
           </SessionProvider>
         </ToastProvider>

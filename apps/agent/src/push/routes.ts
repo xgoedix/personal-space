@@ -17,12 +17,15 @@ pushRoutes.post("/push/subscriptions", async (c) => {
   const problem = endpointProblem(input.endpoint);
   if (problem) throw new ValidationError(problem);
   const label = input.label || deviceLabel(c.req.header("user-agent") ?? "");
-  const device = s.push.subscriptions.save({
+  const device = s.db.transaction(() => {
+    if (input.replace_endpoint && input.replace_endpoint !== input.endpoint) s.push.subscriptions.removeByEndpoint(input.replace_endpoint);
+    return s.push.subscriptions.save({
     endpoint: input.endpoint,
     p256dh: input.keys.p256dh,
     auth: input.keys.auth,
     label,
     origin: new URL(c.req.url).origin,
+    });
   });
   s.activity.record("push.subscribed", `Notifications turned on for ${label}`);
   return c.json({ device, status: s.push.status() });
@@ -46,7 +49,7 @@ pushRoutes.delete("/push/subscriptions/:id", (c) => {
 pushRoutes.post("/push/test", async (c) => {
   const s = c.env.agent.services;
   if (!s.push.configured()) throw new AppError("NOT_CONFIGURED", "Push notifications are not set up on this deployment yet.");
-  const result = await s.push.sendToAll({ title: s.settings.get().agentName, body: "Test notification: push works on this device.", url: "/" });
+  const result = await s.push.sendToAll({ title: s.settings.get().agentName, body: "Notificación de prueba: BichO puede enviar avisos a este dispositivo.", url: "/" });
   return c.json({ result, status: s.push.status() });
 });
 

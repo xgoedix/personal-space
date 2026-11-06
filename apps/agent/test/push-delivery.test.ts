@@ -93,7 +93,7 @@ describe("push delivery", () => {
     await inAgent((agent) => { agent.services.push.fetcher = stub.fetcher; });
     const res = await c.json("/api/push/test", { method: "POST" });
     expect(res.result).toEqual({ sent: 1, gone: 0, failed: 0 });
-    expect(await decryptAsBrowser(stub.sent[0]!.body, browser)).toMatchObject({ body: "Test notification: push works on this device." });
+    expect(await decryptAsBrowser(stub.sent[0]!.body, browser)).toMatchObject({ body: "Notificación de prueba: BichO puede enviar avisos a este dispositivo." });
   });
 
   it("shortens long or Markdown bodies for the system notification", () => {

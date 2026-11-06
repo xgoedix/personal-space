@@ -1,3 +1,5 @@
+import { hasLocalDraft } from "./updates";
+
 /**
  * After an update the old hashed page chunks are gone, so a tab left open fails when it next
  * opens a lazy page. The wording varies by browser; these cover Chromium, Firefox and Safari.
@@ -25,6 +27,7 @@ export function shouldAutoReload(storage: Pick<Storage, "getItem" | "setItem">, 
 
 /** Reloads to pick up the new version, unless that was just tried. Returns whether it reloaded. */
 export function reloadForNewVersion(): boolean {
+  if (document.querySelector('[data-bicho-busy="true"]') || hasLocalDraft(document)) return false;
   let storage: Storage;
   try {
     storage = sessionStorage;

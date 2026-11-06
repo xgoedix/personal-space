@@ -1,4 +1,4 @@
-// Talorys service worker. It only shows notifications: nothing is cached, so the
+// BichO service worker. It only shows notifications: nothing is cached, so the
 // app always loads fresh from the network. Payloads arrive encrypted end to end (RFC 8291).
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -63,21 +63,14 @@ self.addEventListener("pushsubscriptionchange", (event) => {
     (async () => {
       const sub = event.newSubscription ?? (await self.registration.pushManager.subscribe(options));
       const headers = { "content-type": "application/json", "x-talorys-request": "1" };
-      // Free the old endpoint's device slot first, so the new one is not refused at the device limit.
-      if (event.oldSubscription?.endpoint) {
-        await fetch("/api/push/unsubscribe", {
-          method: "POST",
-          credentials: "same-origin",
-          headers,
-          body: JSON.stringify({ endpoint: event.oldSubscription.endpoint }),
-        }).catch(() => {});
-      }
-      await fetch("/api/push/subscriptions", {
+      // Replace atomically: a failed registration must never delete the old endpoint.
+      const result = await fetch("/api/push/subscriptions", {
         method: "POST",
         credentials: "same-origin",
         headers,
-        body: JSON.stringify(sub.toJSON()),
+        body: JSON.stringify({ ...sub.toJSON(), replace_endpoint: event.oldSubscription?.endpoint }),
       });
+      if (!result.ok) throw new Error("No se pudo renovar la suscripción push.");
     })(),
   );
 });

@@ -207,7 +207,7 @@ export function ChatPage() {
   const showEmpty = !conversationId && !streamHere;
 
   return (
-    <div className="space-chat flex h-full">
+    <div data-bicho-busy={streaming || remoteStreaming ? "true" : undefined} className="space-chat flex h-full">
       <aside className="hidden w-72 shrink-0 flex-col border-r border-border lg:flex">
         <ConversationList activeId={conversationId} onNavigate={() => {}} />
       </aside>
