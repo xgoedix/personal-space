@@ -32,6 +32,8 @@ export interface Deps {
   fetch?: FetchLike;
   exec?: Exec;
   templates?: string;
+  /** A caller may reserve a dedicated resource prefix (e.g. isolated staging). */
+  nextInstallationId?: () => string;
 }
 
 // ---------- Reusable steps ----------
@@ -197,7 +199,7 @@ export async function install(opts: InstallOptions, deps: Deps): Promise<Manifes
 
   const names: ResourceNames = manifest
     ? { installationId: manifest.installation_id, workerName: manifest.worker_name, pagesProjectName: manifest.pages_project_name }
-    : await ui.step("Reserving resource names", () => allocateNames(wrangler), (n) => `Resource names reserved (${n.installationId})`);
+    : await ui.step("Reserving resource names", () => allocateNames(wrangler, 5, deps.nextInstallationId), (n) => `Resource names reserved (${n.installationId})`);
 
   // Which secrets still need to be created? Never overwrite an existing owner password.
   const workerExists = manifest ? await wrangler.workerExists(names.workerName) : false;

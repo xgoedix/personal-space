@@ -57,6 +57,17 @@ async function runTurn(provider: AIProvider, message: string) {
 }
 
 describe("tool execution limits", () => {
+  it("does not confirm completion when a read succeeds but a write fails without a model reply", async () => {
+    const events = await runTurn(new ScriptedProvider([
+      { tool: "list_tasks", input: {} },
+      { tool: "create_note", input: { title: "", content: "invalid" } },
+    ]), "Guarda una nota de prueba");
+    const done = events.find(e => e.type === "done");
+    expect(done?.type === "done" && done.message.tools.some(t => t.name === "list_tasks" && t.status === "success")).toBe(true);
+    expect(done?.type === "done" && done.message.tools.some(t => t.status === "error")).toBe(true);
+    expect(done?.type === "done" && done.message.content).toContain("No se han completado");
+  });
+
   it("validates input, caps calls and blocks duplicate loops", async () => {
     await inAgent(async (agent) => {
       const ex = new ToolExecutor(ALL_TOOLS, { services: agent.services, timezone: "UTC", mode: "chat" }, { maxToolCalls: 3 });
