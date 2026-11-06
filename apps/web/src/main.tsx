@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router";
 import "./styles/index.css";
+import "./personal/space.css";
 import { initTheme } from "./lib/theme";
 import { initLanguage } from "./lib/i18n";
 import { App } from "./App";
@@ -14,6 +15,12 @@ import { reloadForNewVersion } from "./lib/chunkErrors";
 
 initTheme();
 initLanguage();
+// Reuse Talorys' notification service worker; never cache private API responses.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+    // The app stays usable online; push setup reports availability in Settings.
+  });
+}
 
 // A chunk from before an update is gone. If the reload is refused, the error reaches the boundary.
 window.addEventListener("vite:preloadError", (event) => {

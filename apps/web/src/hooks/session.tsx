@@ -36,7 +36,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [query.data?.theme]);
 
   useEffect(() => {
-    if (query.data?.language) applyLanguage(query.data.language);
+    if (query.data?.language) applyLanguage("es");
   }, [query.data?.language]);
 
   useEffect(

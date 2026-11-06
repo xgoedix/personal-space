@@ -1,3 +1,5 @@
+import { SpaceMark } from "../personal/Shell";
+import { PREVIEW } from "../personal/model";
 import { type KeyboardEvent, type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,11 +23,11 @@ import {
 } from "lucide-react";
 import { ApprovalCard } from "../components/ApprovalCard";
 import { TaskPlanCard } from "../components/TaskPlanCard";
-import { ChatUsage } from "../components/ChatUsage";
+
 import { Markdown } from "../components/Markdown";
 import { Button, ConfirmDialog, Dialog, Input, Spinner } from "../components/ui";
 import { Logo } from "../components/Logo";
-import { keys, useApiMutation, useConversation, useConversations, useSettings, useTimezone } from "../hooks/queries";
+import { keys, useApiMutation, useConversation, useConversations, useSettings } from "../hooks/queries";
 import { usePageTitle } from "../hooks/pageTitle";
 import { api, ApiError, streamChat } from "../lib/api";
 import { notifyChatFailure, notifyChatTurn } from "../lib/chatAlerts";
@@ -46,10 +48,10 @@ interface StreamState {
 }
 
 const SUGGESTIONS = [
-  "What should I work on today?",
-  "Add a task to review my project tomorrow",
-  "Remember that I prefer short answers",
-  "Every Friday at 5pm, remind me to plan next week",
+  "¿Qué tengo pendiente?",
+  "Quiero guardar una idea",
+  "Quiero recordar un cumpleaños",
+  "Ayúdame a organizar mañana",
 ];
 
 export function ChatPage() {
@@ -168,14 +170,14 @@ export function ChatPage() {
         controller.signal,
       );
       // The stream closed without finishing the turn, so nothing else would release the composer.
-      if (!sawDone) throw new Error(streamError ?? "Connection lost.");
+      if (!sawDone) throw new Error(streamError ?? "Se ha perdido la conexión. Inténtalo de nuevo.");
     } catch (error) {
       // The server never got this message: hand it back instead of showing a bubble that was never sent.
       if (!saved) restoreDraft.current(text);
       if (controller.signal.aborted) {
         update((s) => s && { ...s, done: true, userText: saved ? s.userText : "" });
       } else {
-        const message = error instanceof ApiError || error instanceof Error ? error.message : "Connection lost.";
+        const message = error instanceof ApiError || error instanceof Error ? error.message : "Se ha perdido la conexión. Inténtalo de nuevo.";
         update((s) => s && { ...s, error: message, done: true, userText: saved ? s.userText : "" });
         if (!sawDone) void notifyChatFailure(convId, message, t);
       }
@@ -184,6 +186,7 @@ export function ChatPage() {
       if (isLatest()) abortRef.current = null;
       void qc.invalidateQueries({ queryKey: ["conversations"] });
       void qc.invalidateQueries({ queryKey: keys.usage });
+      for (const queryKey of [keys.tasks, ["notes"], ["memories"], keys.automations]) void qc.invalidateQueries({ queryKey });
       if (convId) void qc.invalidateQueries({ queryKey: keys.conversation(convId) });
       // Drop the transient bubble once persisted messages are back. An error may have no saved message, so it stays.
       setTimeout(() => update((s) => (s?.done && !s.error ? null : s)), 400);
@@ -205,7 +208,7 @@ export function ChatPage() {
   const showEmpty = !conversationId && !streamHere;
 
   return (
-    <div className="flex h-full">
+    <div className="space-chat flex h-full">
       <aside className="hidden w-72 shrink-0 flex-col border-r border-border lg:flex">
         <ConversationList activeId={conversationId} onNavigate={() => {}} />
       </aside>
@@ -232,7 +235,7 @@ export function ChatPage() {
               <Spinner />
             </div>
           ) : conversation.isError && !streamHere ? (
-            <div className="p-8 text-center text-sm text-fg-muted">This conversation could not be loaded.</div>
+            <div className="p-8 text-center text-sm text-fg-muted">No se ha podido cargar esta conversación.</div>
           ) : (
             <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 md:px-6">
               {messages.map((m) =>
@@ -264,11 +267,11 @@ export function ChatPage() {
           )}
         </div>
 
-        <Composer streaming={streamingHere || remoteStreaming} onSend={(t) => void send(t)} onStop={stop} autoFocus={showEmpty} restoreRef={restoreDraft} />
+        <Composer streaming={streamingHere || remoteStreaming} onSend={(t) => void send(t)} onStop={stop} autoFocus={false} restoreRef={restoreDraft} />
         <div role="status" className="sr-only">{announcement}</div>
       </section>
 
-      <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} title="Conversations">
+      <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} title="Conversaciones">
         <div className="-mx-5 -my-4 h-[60vh]">
           <ConversationList activeId={conversationId} onNavigate={() => setHistoryOpen(false)} />
         </div>
@@ -291,16 +294,16 @@ function ChatHeader({
   return (
     <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3 md:px-4">
       <div className="flex min-w-0 items-center gap-1">
-        <button type="button" onClick={onOpenHistory} className="rounded-lg p-2 text-fg-muted hover:bg-muted lg:hidden" aria-label="Conversation history">
+        <button type="button" onClick={onOpenHistory} className="rounded-lg p-2 text-fg-muted hover:bg-muted lg:hidden" aria-label="Historial de conversaciones">
           <History className="h-[18px] w-[18px]" />
         </button>
-        <Title className="truncate text-sm font-medium text-fg">{conversation?.title ?? "New conversation"}</Title>
+        <Title className="truncate text-sm font-medium text-fg">{conversation?.title ?? "Nueva conversación"}</Title>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <ChatUsage />
-        <Button variant="ghost" size="sm" onClick={onNew}>
+
+        <Button variant="ghost" size="sm" onClick={onNew} aria-label="Nueva conversación">
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">New chat</span>
+          <span className="hidden sm:inline">Nueva conversación</span>
         </Button>
       </div>
     </div>
@@ -315,51 +318,8 @@ export function chatGreeting(now: Date, timeZone: string): string {
   return "Good evening";
 }
 
-function EmptyChat({ name, onPick }: { name: string; onPick: (s: string) => void }) {
-  const i18n = useI18n();
-  const tz = useTimezone();
-  const recent = useConversations();
-  const navigate = useNavigate();
-  const greeting = chatGreeting(new Date(), tz);
-  return (
-    <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-center px-5 py-10 animate-fade-in">
-      <div className="flex items-center gap-3 text-fg-muted">
-        <Logo className="h-8 w-8" />
-        <span className="text-sm font-medium">{name}</span>
-      </div>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight text-fg md:text-4xl">{greeting}.</h1>
-      <p className="mt-2 text-lg text-fg-muted">What would you like to do today?</p>
-      <div className="mt-8 grid gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((s) => (
-          <button type="button"
-            key={s}
-            onClick={() => onPick(s)}
-            className="rounded-xl border border-border bg-surface px-4 py-3 text-left text-sm text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-      {!!recent.data?.length && (
-        <div className="mt-10">
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-fg-subtle">Recent conversations</h3>
-          <ul className="space-y-0.5">
-            {recent.data.slice(0, 4).map((c) => (
-              <li key={c.id}>
-                <button type="button"
-                  onClick={() => navigate(`/chat/${c.id}`)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left text-sm text-fg-muted hover:bg-muted hover:text-fg"
-                >
-                  <span className="truncate">{c.title}</span>
-                  <span className="shrink-0 text-xs text-fg-subtle">{relativeTime(c.updated_at, i18n)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
+function EmptyChat({ name: _name, onPick }: { name: string; onPick: (s: string) => void }) {
+  return <div className="chat-intro"><SpaceMark/><h1>Fuera de tu cabeza.<br/>Dentro de tu espacio.</h1><p>Una idea, algo pendiente, eso que no quieres olvidar.<br/>Empieza por contármelo.</p><div className="chat-suggestions">{SUGGESTIONS.map(s => <button key={s} type="button" onClick={() => onPick(s)}>{s}</button>)}</div>{PREVIEW && <p className="chat-preview-note">Preview visual: la IA no está conectada y los mensajes no se guardan. Explora las tareas y notas con los datos de ejemplo.</p>}</div>;
 }
 
 function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavigate: () => void }) {
@@ -403,7 +363,7 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
   );
   const remove = useApiMutation((id: string) => api(`/conversations/${id}`, { method: "DELETE" }), {
     invalidate: [["conversations"]],
-    success: "Conversation deleted",
+    success: "Conversación eliminada",
     onSuccess: (_r, id) => {
       setDeleting(null);
       if (id === activeId) navigate("/chat");
@@ -421,20 +381,20 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
             onNavigate();
           }}
         >
-          <Plus className="h-4 w-4" /> New conversation
+          <Plus className="h-4 w-4" /> Nueva conversación
         </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search history" className="h-9 pl-9 text-sm" aria-label="Search conversations" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar en el historial" className="h-9 pl-9 text-sm" aria-label="Buscar conversaciones" />
         </div>
       </div>
-      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 pb-3" aria-label="Conversations">
+      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 pb-3" aria-label="Conversaciones">
         {list.isLoading ? (
           <div className="flex justify-center py-6">
             <Spinner />
           </div>
         ) : !list.data?.length ? (
-          <p className="px-3 py-6 text-center text-sm text-fg-subtle">{debounced ? "No matches." : "No conversations yet."}</p>
+          <p className="px-3 py-6 text-center text-sm text-fg-subtle">{debounced ? "No hay coincidencias." : "Aún no hay conversaciones."}</p>
         ) : (
           <ul className="space-y-0.5">
             {list.data.map((c) => (
@@ -455,7 +415,7 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
                 <button type="button"
                   onClick={() => setMenu(menu === c.id ? null : c.id)}
                   className="absolute right-1.5 top-2 rounded-md p-1 text-fg-subtle opacity-100 hover:bg-border hover:text-fg md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
-                  aria-label={`Options for ${c.title}`}
+                  aria-label={`Opciones de ${c.title}`}
                   aria-expanded={menu === c.id}
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -470,7 +430,7 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
                         setMenu(null);
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5" /> Rename
+                      <Pencil className="h-3.5 w-3.5" /> Cambiar nombre
                     </button>
                     <button type="button"
                       className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger-soft"
@@ -479,7 +439,7 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
                         setMenu(null);
                       }}
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
                     </button>
                   </div>
                 )}
@@ -492,17 +452,17 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
       <Dialog
         open={!!renaming}
         onClose={() => setRenaming(null)}
-        title="Rename conversation"
+        title="Cambiar nombre de la conversación"
         footer={
           <>
             <Button variant="ghost" onClick={() => setRenaming(null)}>
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={() => renaming && title.trim() && rename.mutate({ id: renaming.id, title: title.trim() })}
               loading={rename.isPending}
             >
-              Save
+              Guardar
             </Button>
           </>
         }
@@ -513,13 +473,13 @@ function ConversationList({ activeId, onNavigate }: { activeId?: string; onNavig
             if (renaming && title.trim()) rename.mutate({ id: renaming.id, title: title.trim() });
           }}
         >
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus aria-label="Title" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus aria-label="Título" />
         </form>
       </Dialog>
       <ConfirmDialog
         open={!!deleting}
-        title="Delete conversation?"
-        message={`“${deleting?.title}” and all its messages will be permanently deleted.`}
+        title="¿Eliminar conversación?"
+        message={`“${deleting?.title}” y todos sus mensajes se eliminarán definitivamente.`}
         onCancel={() => setDeleting(null)}
         onConfirm={() => deleting && remove.mutate(deleting.id)}
         loading={remove.isPending}
@@ -592,7 +552,7 @@ function AssistantBubble({
       <Logo className="mt-0.5 h-6 w-6 shrink-0" />
       <div className="min-w-0 flex-1 space-y-2.5">
         {tools.length > 0 && (
-          <div role="group" className="flex flex-wrap gap-1.5" aria-label="Actions taken">
+          <div role="group" className="flex flex-wrap gap-1.5" aria-label="Acciones realizadas">
             {tools.map((t) => (
               <ToolChip key={t.id} tool={t} />
             ))}
@@ -603,20 +563,20 @@ function AssistantBubble({
         {text ? (
           <Markdown content={text} />
         ) : streaming && tools.every((t) => t.status !== "running") ? (
-          <div role="status" className="flex h-7 items-center gap-1" aria-label="Thinking">
+          <div role="status" className="flex h-7 items-center gap-1" aria-label="Pensando">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fg-subtle" />
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fg-subtle [animation-delay:150ms]" />
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fg-subtle [animation-delay:300ms]" />
           </div>
         ) : null}
-        {cancelled && <p className="text-xs text-fg-subtle">Stopped.</p>}
+        {cancelled && <p className="text-xs text-fg-subtle">Detenido.</p>}
         {error && (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span className="flex-1">{error}</span>
             {onRetry && (
               <button type="button" onClick={onRetry} className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline">
-                <RotateCcw className="h-3.5 w-3.5" /> Retry
+                <RotateCcw className="h-3.5 w-3.5" /> Reintentar
               </button>
             )}
           </div>
@@ -631,10 +591,10 @@ function AssistantBubble({
                 })
               }
               className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-fg-subtle hover:bg-muted hover:text-fg"
-              aria-label="Copy response"
+              aria-label="Copiar respuesta"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? "Copiado" : "Copiar"}
             </button>
           </div>
         )}
@@ -694,22 +654,22 @@ function Composer({
           onKeyDown={onKeyDown}
           autoFocus={autoFocus}
           maxLength={16000}
-          placeholder="Ask Talorys anything…"
-          aria-label="Message"
+          placeholder="Cuéntame algo..."
+          aria-label="Mensaje"
           className="max-h-[200px] min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-[15px] leading-6 placeholder:text-fg-subtle focus:outline-none"
         />
         {streaming ? (
-          <Button variant="secondary" size="icon" onClick={onStop} aria-label="Stop generating" className="rounded-xl">
+          <Button variant="secondary" size="icon" onClick={onStop} aria-label="Detener respuesta" className="rounded-xl">
             <Square className="h-3.5 w-3.5 fill-current" />
           </Button>
         ) : (
-          <Button size="icon" onClick={submit} disabled={!value.trim()} aria-label="Send message" className="rounded-xl">
+          <Button size="icon" onClick={submit} disabled={!value.trim()} aria-label="Enviar mensaje" className="rounded-xl">
             <ArrowUp className="h-4 w-4" />
           </Button>
         )}
       </div>
       <p className="mx-auto mt-2 hidden max-w-3xl text-center text-[11px] text-fg-subtle md:block">
-        Runs on your Cloudflare account. Talorys can make mistakes — check important details.
+        Escribe o usa el micrófono del teclado de tu iPhone para dictar.
       </p>
     </div>
   );

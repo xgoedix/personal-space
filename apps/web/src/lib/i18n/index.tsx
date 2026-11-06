@@ -6,7 +6,7 @@ export type { MessageKey } from "./core";
 export type LanguagePreference = "system" | Language;
 
 /** Each language's name in that language, as shown in the language picker. */
-export const LANGUAGE_NAMES: Record<Language, string> = { en: "English", ko: "한국어" };
+export const LANGUAGE_NAMES: Record<Language, string> = { en: "English", ko: "한국어", es: "Español" };
 
 export interface I18n {
   /** What the owner picked in Settings. */
@@ -63,10 +63,10 @@ export function applyLanguage(preference: LanguagePreference): void {
 
 /** Applies the last known language before first render, so the sign-in screen is translated too. */
 export function initLanguage(): void {
-  let preference: LanguagePreference = "system";
+  let preference: LanguagePreference = "es";
   try {
     const stored = localStorage.getItem(KEY);
-    if (stored === "system" || isLanguage(stored)) preference = stored;
+    if (stored === "es") preference = stored;
   } catch {
     /* ignore */
   }

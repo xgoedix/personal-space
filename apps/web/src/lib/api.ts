@@ -1,3 +1,4 @@
+import { PREVIEW } from "../personal/model";
 import { CSRF_HEADER, type ApiErrorBody, type ApiErrorCode, type ChatStreamEvent } from "@talorys/shared";
 import { i18nNow } from "./i18n";
 
@@ -42,6 +43,7 @@ async function toApiError(res: Response): Promise<ApiError> {
 
 /** Same-origin JSON API call. Cookies carry the session; the custom header defeats CSRF. */
 export async function api<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
+  if (PREVIEW) return (await import("../personal/preview")).previewApi(path, init) as Promise<T>;
   const res = await fetch(`/api${path}`, {
     method: init.method ?? "GET",
     credentials: "same-origin",
@@ -68,6 +70,7 @@ export async function streamChat(
   onEvent: (event: ChatStreamEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {
+  if (PREVIEW) throw new Error("La IA no está conectada en esta preview. Tu mensaje no se ha enviado ni guardado. Puedes probar las tareas y notas con los datos ficticios.");
   const res = await fetch("/api/chat", {
     method: "POST",
     credentials: "same-origin",

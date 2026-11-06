@@ -13,3 +13,6 @@ packages/create-talorys/templates/
 .env
 .env.*
 test-results/
+
+# Independent hosted visual preview (its own source repository).
+preview-site/
