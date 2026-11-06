@@ -5,12 +5,13 @@ import { fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";
 import { generateInstallationId } from "./config";
 import { install } from "./install";
-import { readManifest } from "./manifest";
+import { markStep, readManifest } from "./manifest";
 import { validatePassword } from "./secrets";
 import { ClackUi } from "./ui";
 import { assertStagingManifest, StagingWrangler } from "./staging-guard";
 import { verifyStaging } from "./staging-smoke";
 import { allowsSetupPost } from "./staging-form";
+import { verifyDeployment } from "./verify";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const directory = join(root, ".personal-space/staging");
@@ -21,6 +22,8 @@ process.env.TZ = "Europe/Madrid";
 process.env.WRANGLER_SEND_METRICS = "false";
 const existing = readManifest(directory);
 if (existing) assertStagingManifest(existing);
+const verifyOnly = process.argv.includes("--verify-only");
+if (verifyOnly && !existing?.public_url) throw new Error("No deployed staging URL to verify.");
 const token = randomBytes(24).toString("hex");
 let origin = "";
 let running = false;
@@ -38,10 +41,16 @@ class SetupUi extends ClackUi {
 }
 async function run(password: string) {
   try {
-    const manifest = await install({ dir: directory, yes: true, agentName: "Personal Space", password, semantic: false, verifyTimeoutMs: 180_000 }, {
+    let manifest = verifyOnly ? existing! : await install({ dir: directory, yes: true, agentName: "Personal Space", password, semantic: false, verifyTimeoutMs: 180_000 }, {
       ui: new SetupUi(), wrangler: new StagingWrangler(directory), nextInstallationId: () => `psst${generateInstallationId()}`,
     });
     assertStagingManifest(manifest); publicUrl = manifest.public_url;
+    if (verifyOnly) {
+      const checks = await verifyDeployment(publicUrl!, { onWait: log, timeoutMs: 180_000 });
+      for (const c of checks) log(`${c.ok ? "✓" : "✗"} ${c.name}: ${c.detail}`);
+      if (checks.some(c => !c.ok)) throw new Error("Deployment health checks failed.");
+      manifest = markStep(directory, { ...manifest, status: "deployed" }, "verified");
+    }
     const report = await verifyStaging(manifest, password, log);
     writeFileSync(join(directory, "verification.json"), `${JSON.stringify(report, null, 2)}\n`);
     log(`Verificación automática terminada. Falta comprobar la recepción push en tu iPhone. URL: ${publicUrl}`);
@@ -89,7 +98,7 @@ const server = createServer(async (req, res) => {
   if (running) {
     return page(`<h1>${finished ? "Staging conectado" : failed ? "La instalación necesita atención" : "Preparando tu staging"}</h1>${publicUrl ? `<p><a href="${escapeHtml(publicUrl)}">Abrir Personal Space</a></p>` : ""}<p>${finished ? "Las operaciones del backend están verificadas. Falta probar la recepción push en tu iPhone." : "Puedes actualizar esta página para consultar el progreso."}</p><ol>${messages.map(m => `<li>${escapeHtml(m)}</li>`).join("")}</ol><a href="">Actualizar estado</a>`);
   }
-  page(`<h1>Acceso privado a staging</h1><p>${existing ? "Introduce la contraseña de esta instalación de prueba para verificarla." : "Elige una contraseña nueva para Personal Space. Se usará solo en la instalación de prueba."}</p><p>Este formulario está en tu ordenador. La contraseña no se muestra en el chat ni se guarda en archivos; se usa para configurar el acceso y verificar el backend.</p><form method="post"><input type="hidden" name="csrf" value="${token}"><label>Contraseña<input type="password" name="password" autocomplete="${existing ? "current-password" : "new-password"}" minlength="10" maxlength="256" required></label><label>Repetir contraseña<input type="password" name="confirmation" autocomplete="new-password" minlength="10" maxlength="256" required></label><small>10 caracteres o más, con letras y números o símbolos. También puedes usar una frase de 16 caracteres o más. Guárdala en tu gestor de contraseñas.</small><button>Preparar y verificar staging</button></form><small>Se crearán recursos separados. Talorys original y sus datos permanecerán intactos.</small>`);
+  page(`<h1>Acceso privado a staging</h1><p>${existing ? "Introduce la contraseña de esta instalación de prueba para verificarla." : "Elige una contraseña nueva para Personal Space. Se usará solo en la instalación de prueba."}</p><p>Este formulario está en tu ordenador. La contraseña no se muestra en el chat ni se guarda en archivos; se usa para configurar el acceso y verificar el backend.</p><form method="post"><input type="hidden" name="csrf" value="${token}"><label>Contraseña<input type="password" name="password" autocomplete="${existing ? "current-password" : "new-password"}" minlength="10" maxlength="256" required></label><label>Repetir contraseña<input type="password" name="confirmation" autocomplete="new-password" minlength="10" maxlength="256" required></label><small>10 caracteres o más, con letras y números o símbolos. También puedes usar una frase de 16 caracteres o más. Guárdala en tu gestor de contraseñas.</small><button>${verifyOnly ? "Verificar backend" : existing ? "Actualizar y verificar staging" : "Preparar y verificar staging"}</button></form><small>${verifyOnly ? "Se verificará únicamente el staging existente." : "Se usarán recursos separados."} Talorys original y sus datos permanecerán intactos.</small>`);
 });
 server.listen(0, "127.0.0.1", () => {
   const address = server.address(); if (!address || typeof address === "string") throw new Error("No local address");

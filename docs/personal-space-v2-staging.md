@@ -17,6 +17,12 @@ El formulario escucha exclusivamente en `127.0.0.1`, valida el origen y un token
 
 La carpeta local `.personal-space/staging` está excluida de Git. Su `talorys.json` identifica los recursos y permite reanudar un despliegue sin duplicarlos ni sustituir las claves push. No eliminar esa carpeta para actualizar. Repetir ambos comandos y usar la contraseña existente. Una contraseña incorrecta no reemplaza la ya configurada.
 
+Para repetir solo las comprobaciones sobre un staging ya desplegado, sin publicar nada de nuevo:
+
+```sh
+npm run staging:deploy -- --verify-only
+```
+
 ## Aislamiento
 
 - Worker: `talorys-psst<8 caracteres>-agent`, sin URL pública ni URL de preview.
