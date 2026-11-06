@@ -43,7 +43,8 @@ async function toApiError(res: Response): Promise<ApiError> {
 
 /** Same-origin JSON API call. Cookies carry the session; the custom header defeats CSRF. */
 export async function api<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
-  if (PREVIEW) return (await import("../personal/preview")).previewApi(path, init) as Promise<T>;
+  // Keep the build-time condition next to the import so production bundles omit the fixtures entirely.
+  if (import.meta.env.VITE_PERSONAL_PREVIEW === "true") return (await import("../personal/preview")).previewApi(path, init) as Promise<T>;
   const res = await fetch(`/api${path}`, {
     method: init.method ?? "GET",
     credentials: "same-origin",

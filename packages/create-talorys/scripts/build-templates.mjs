@@ -42,7 +42,6 @@ if (extra.length) throw new Error(`Unexpected additional Worker modules: ${extra
 rmSync(bundleDir, { recursive: true, force: true });
 cpSync(join(root, "apps/web/dist"), join(out, "web/dist"), { recursive: true });
 cpSync(join(root, "apps/web/functions/api/[[path]].ts"), join(out, "web/functions/api/[[path]].ts"));
-writeFileSync(join(out, "version.json"), `${JSON.stringify({ version: pkg.version, built_at: new Date().toISOString() }, null, 2)}\n`);
 
 // Safety net: no secrets or local dev values may ever ship in the package.
 const forbidden = [/pbkdf2-sha256\$\d+\$/, /TALORYS_ENV\s*=\s*development/, /talorys-dev-password/, /demo-task-1/, /demo-person-1/, /previewApi/];
@@ -58,4 +57,6 @@ function scan(dir) {
 }
 scan(out);
 if (!existsSync(join(out, "web/dist/index.html"))) throw new Error("Frontend build missing");
+// A failed validation must never leave an installable template manifest behind.
+writeFileSync(join(out, "version.json"), `${JSON.stringify({ version: pkg.version, built_at: new Date().toISOString() }, null, 2)}\n`);
 console.log(`✓ Templates ready (${pkg.version})`);
