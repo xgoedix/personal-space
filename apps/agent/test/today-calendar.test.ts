@@ -55,6 +55,10 @@ describe('calendario privado de Hoy',()=>{
     const intervals=day.entries.filter(e=>e.item.id===ids.interval);
     expect(intervals[0]?.start).toBe('2030-03-31T08:17:00.000Z');
     expect(intervals.map(e=>e.key)).toEqual(month.entries.filter(e=>e.item.id===ids.interval&&e.date==='2030-03-31').map(e=>e.key));
+    await inAgent(a=>a.services.automationsRepo.update(ids.interval,{enabled:false,next_run:null,last_run:'2030-03-31T07:17:00.000Z',status:'paused'}));
+    const paused=(await calendar(c,'2030-03-31')).entries.filter(e=>e.item.id===ids.interval);
+    expect(paused.map(e=>e.start)).toEqual(['2030-03-31T07:17:00.000Z']);
+    expect((await calendar(c,'2030-04-01')).entries.some(e=>e.item.id===ids.interval)).toBe(false);
   });
   it('editar, reprogramar y completar persiste sin crear otros registros',async()=>{
     const c=await loggedIn();

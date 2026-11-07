@@ -61,7 +61,11 @@ todayRoutes.get('/today/calendar', c => {
     const emit = (date: Date) => add({kind:'reminder',item,key:`reminder:${item.id}:${date.toISOString()}`,date:toLocalMinute(date,timezone).slice(0,10),start:date.toISOString(),title:item.name});
     if(item.schedule.type === 'interval') {
       // Interval schedules are anchored to the saved next run, never to the viewed date.
-      const anchor = Date.parse(item.next_run ?? item.last_run ?? item.created_at);
+      const last = item.last_run ? new Date(item.last_run) : null;
+      if(last && last >= start && last < end && item.last_run !== item.next_run) emit(last);
+      // Without a pending run there is no reliable future anchor (paused/failed interval).
+      if(!item.enabled || !item.next_run) continue;
+      const anchor = Date.parse(item.next_run);
       const step = item.schedule.minutes*60000;
       const lower = Math.max(start.getTime(),Date.parse(item.created_at));
       let instant = anchor + Math.max(0,Math.ceil((lower-anchor)/step))*step;
