@@ -1,5 +1,6 @@
 import type { RemoteScope } from "@talorys/shared";
 import { captureRoutes } from "../bicho/capture-routes";
+import { todayRoutes } from "../bicho/today";
 import { bichoRoutes } from "../bicho/routes";
 import { Hono } from "hono";
 import type { TalorysAgent } from "../agent/talorys-agent";
@@ -49,6 +50,7 @@ export function createApi() {
   app.route("/", chatRoutes);
   app.route("/", dataRoutes);
   app.route("/", bichoRoutes);
+  app.route("/", todayRoutes);
   app.route("/", captureRoutes);
   app.route("/", automationRoutes);
   app.route("/", pushRoutes);

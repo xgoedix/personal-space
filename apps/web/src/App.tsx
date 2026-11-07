@@ -1,3 +1,4 @@
+import { TodayCalendar } from "./personal/TodayCalendar";
 import { ListsPage, PeoplePage, SiriGuide, BichoAdvancedSettings } from "./personal/Bicho";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
@@ -48,7 +49,7 @@ export function App() {
     <Routes>
       <Route element={<SpaceShell />}>
         <Route index element={<HomePage />} />
-        <Route path="today" element={<CollectionPage key="today" section="today" />} />
+        <Route path="today" element={<TodayCalendar />} />
         <Route path="people" element={<PeoplePage />} />
         <Route path="saved" element={<CollectionPage key="saved" section="saved" />} />
         <Route path="lists" element={<ListsPage />} />

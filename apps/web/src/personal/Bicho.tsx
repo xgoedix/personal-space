@@ -502,7 +502,7 @@ export function PeoplePage() {
 		</div>
 	);
 }
-function BirthdayEditor({
+export function BirthdayEditor({
 	value,
 	onClose,
 }: {
