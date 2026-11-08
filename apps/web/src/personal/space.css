@@ -10,3 +10,12 @@
 .siri-guide{max-width:860px}.siri-guide .prose-talorys{font-size:15px;line-height:1.75}.siri-guide h1{font-size:32px}.siri-guide h2{font-size:24px;margin-top:32px}.siri-guide ol,.siri-guide ul{padding-left:24px}.siri-guide li{margin:12px 0}.siri-guide code{overflow-wrap:anywhere}
 .editorial-grid.bicho-lists{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}.list-card{display:block}.list-heading{display:grid;grid-template-columns:1fr auto auto}.list-heading h2{grid-column:1/-1;min-width:0;margin:0 0 6px;line-height:1.2}.list-heading .section-hint{white-space:nowrap;margin:0}.birthday-card{display:block}
 @media(max-width:700px){.item-actions button{width:44px;height:44px}.list-heading .round-button{width:44px;height:44px}}
+
+.saved-card { flex-direction: column; }
+.saved-card .card-open { min-height: 0; padding: 0; }
+.saved-picture { display: grid; place-items: center; position: relative; width: 100%; aspect-ratio: 5 / 3; background: #e9e6df; color: #929187; overflow: hidden; }
+.saved-picture img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #e9e6df; }
+.saved-card .card-open h2 { margin: 0; padding: 14px 16px 2px; font-size: clamp(19px, 3vw, 27px); }
+.saved-domain { align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 6px 16px 10px; color: var(--fg-muted); font-size: 13px; overflow-wrap: anywhere; }
+.saved-domain svg { flex-shrink: 0; }
+.saved-card .card-delete { background: #f8f4eced; border-radius: 50%; top: 5px; right: 5px; }

@@ -120,6 +120,18 @@ bichoRoutes.patch("/birthday-settings", async (c) => {
 bichoRoutes.get("/saved-links", (c) =>
 	c.json({ links: c.env.agent.services.bicho.saved() }),
 );
+bichoRoutes.get("/saved-links/:id/preview", async (c) => {
+  const picture = await c.env.agent.services.bicho.previews.get(c.req.param("id"));
+  return new Response(picture ? Uint8Array.from(picture.bytes).buffer : null, {
+    status: picture ? 200 : 404,
+    headers: {
+      "Content-Type": picture?.mime ?? "text/plain",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Cross-Origin-Resource-Policy": "same-origin",
+    },
+  });
+});
 bichoRoutes.post("/saved-links", async (c) =>
 	c.json(
 		c.env.agent.services.bicho.saveLink(await body(c, savedLinkSchema)),

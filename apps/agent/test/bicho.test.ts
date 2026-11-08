@@ -1,4 +1,4 @@
-import { migrate } from "../src/db/migrations";
+import { migrate, LATEST_SCHEMA_VERSION } from "../src/db/migrations";
 import { describe, it, expect, vi } from "vitest";
 import { inAgent, loggedIn, client, bearer } from "./helpers";
 import { exportData, importData } from "../src/services/backup";
@@ -524,6 +524,8 @@ describe("migración V2 y rearmado anual", () => {
 			);
 			// Reconstruct schema 12, preserving its data and authentication. V3-only test rows are disposable.
 			for (const table of [
+				"tal_saved_preview_chunks",
+				"tal_saved_previews",
 				"tal_calendar_exports",
 				"tal_captures",
 				"tal_calendar_events",
@@ -536,8 +538,8 @@ describe("migración V2 y rearmado anual", () => {
 			db.run("ALTER TABLE tal_remote_tokens DROP COLUMN capability");
 			db.run("UPDATE tal_schema SET version=12 WHERE id=1");
 			const beforeNote = s.notes.get(note.id);
-			expect(migrate(db)).toBe(13);
-			expect(migrate(db)).toBe(13);
+			expect(migrate(db)).toBe(LATEST_SCHEMA_VERSION);
+			expect(migrate(db)).toBe(LATEST_SCHEMA_VERSION);
 			expect(db.all("SELECT * FROM tal_sessions ORDER BY id")).toEqual(
 				sessions,
 			);

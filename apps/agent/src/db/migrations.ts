@@ -414,6 +414,14 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX tal_capture_daily ON tal_captures(token_id,created_at)`,
     ],
   },
+  {
+    version: 14,
+    name: "Saved link preview cache",
+    statements: [
+      `CREATE TABLE tal_saved_previews (note_id TEXT PRIMARY KEY REFERENCES tal_notes(id) ON DELETE CASCADE, page_url TEXT NOT NULL, preferred_url TEXT NOT NULL, image_url TEXT NOT NULL, mime TEXT NOT NULL, retry_at INTEGER NOT NULL, cached_at INTEGER NOT NULL)`,
+      `CREATE TABLE tal_saved_preview_chunks (note_id TEXT NOT NULL REFERENCES tal_saved_previews(note_id) ON DELETE CASCADE, position INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY(note_id,position))`,
+    ],
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

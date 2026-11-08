@@ -67,7 +67,7 @@ export function createServices(
   const notes = new NoteRepository(db);
   return {
     db,
-    bicho: new BichoService(db, automations, automationsRepo, notes, settings),
+    bicho: new BichoService(db, automations, automationsRepo, notes, settings, background),
     tasks,
     memories,
     notes,

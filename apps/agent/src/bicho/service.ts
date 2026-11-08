@@ -1,3 +1,4 @@
+import { SavedPreviews } from "./saved-previews";
 import {
 	birthdaySchema,
 	calendarEventSchema,
@@ -34,6 +35,7 @@ const conflict = (message: string): never => {
 };
 
 export class BichoService {
+	readonly previews: SavedPreviews;
 	private birthdayQueue: Promise<unknown> = Promise.resolve();
 	private serializeBirthday<T>(fn: () => Promise<T>): Promise<T> {
 		const work = this.birthdayQueue.then(fn);
@@ -46,7 +48,8 @@ export class BichoService {
 		private readonly repo: AutomationRepository,
 		private readonly notes: NoteRepository,
 		private readonly settings: SettingsService,
-	) {}
+		private readonly background: (work: Promise<unknown>) => void,
+	) { this.previews = new SavedPreviews(db); }
 
 	lists(): Checklist[] {
 		return this.db
@@ -374,7 +377,7 @@ export class BichoService {
 	}
 	saveLink(raw: z.input<typeof savedLinkSchema>) {
 		const v = savedLinkSchema.parse(raw);
-		return this.db.transaction(() => {
+		const result = this.db.transaction(() => {
 			const old = this.db.one<SavedLink>(
 				`SELECT * FROM tal_saved_links WHERE url=?`,
 				v.url,
@@ -404,6 +407,8 @@ export class BichoService {
 				existing: false,
 			};
 		});
+		this.background(this.previews.get(result.note.id).catch(() => null));
+		return result;
 	}
 	updateSaved(noteId: string, raw: z.input<typeof savedLinkSchema>) {
 		const v = savedLinkSchema.parse(raw);
@@ -416,7 +421,7 @@ export class BichoService {
 			)
 		)
 			conflict("Ese enlace ya está guardado.");
-		return this.db.transaction(() => {
+		const result = this.db.transaction(() => {
 			this.notes.update(noteId, {
 				title: v.title,
 				content: `#personal-space/guardado\n${v.url}\n${v.comments}`,
@@ -432,6 +437,8 @@ export class BichoService {
 			);
 			return this.notes.require(noteId);
 		});
+		this.background(this.previews.get(noteId).catch(() => null));
+		return result;
 	}
 	events(): BichoEvent[] {
 		return this.db.all<BichoEvent>(

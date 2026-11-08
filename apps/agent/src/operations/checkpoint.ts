@@ -6,9 +6,12 @@ export async function checkpoint(storage: DurableObjectStorage, environment: Rec
   const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
   const columns: Record<string, string[]> = {};
   for (const table of tables) columns[table.name] = storage.sql.exec<{ name: string }>(`PRAGMA table_info(${quote(table.name)})`).toArray().map((row) => row.name);
-  const parts = tables.map((table, index) => `(SELECT json_group_array(json_array(${columns[table.name]!.map((column) => `quote(${quote(column)})`).join(",")})) FROM ${quote(table.name)}) AS t${index}`);
-  const snapshot = storage.sql.exec<Record<string, string>>(`SELECT ${parts.join(",")}`).one();
-  const rows = tables.flatMap((table, index) => (JSON.parse(snapshot[`t${index}`]!) as string[][]).map((row) => ({ table_name: table.name, row_data: JSON.stringify(row) })));
+  // Read synchronously, one row per SQL result, so image data cannot exceed SQLite's single-row limit.
+  const rows = tables.flatMap((table) => {
+    const fields = columns[table.name]!.map((column) => `quote(${quote(column)})`).join(",");
+    return storage.sql.exec<{ row_data: string }>(`SELECT json_array(${fields}) AS row_data FROM ${quote(table.name)}`)
+      .toArray().map(({ row_data }) => ({ table_name: table.name, row_data }));
+  });
   const kv = encodeStorage([...await storage.list()]);
   const alarm = await storage.getAlarm();
   const fingerprints: Record<string, string | null> = {};

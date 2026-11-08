@@ -83,6 +83,10 @@ test("Guardado conserva URL original, precio y comentarios al recargar @mobile",
   await login(page);
   await page.goto("/saved");
   const title = name("Bolso");
+  let available = true;
+  await page.route("**/api/saved-links/*/preview?*", route => available
+    ? route.fulfill({contentType:"image/png",body:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64")})
+    : route.fulfill({status:404}));
   const url = `https://example.com/bolso?color=azul&prueba=${encodeURIComponent(title)}`;
   await page.getByRole("button", { name: "Guardar algo" }).click();
   await page.getByLabel("Título", { exact: true }).fill(title);
@@ -91,7 +95,14 @@ test("Guardado conserva URL original, precio y comentarios al recargar @mobile",
   await page.getByLabel("Comentarios", { exact: true }).fill("Solo datos ficticios");
   await page.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  const card = page.locator("article").filter({ has: page.getByRole("heading", { name: title }) });
+  await expect(card.getByRole("link",{name:"example.com"})).toHaveAttribute("href",url);
+  await expect.poll(() => card.locator("img").evaluateAll(images => images.some(img => (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  available = false;
   await page.reload();
+  await expect(card.locator(".saved-picture")).toBeVisible();
+  await expect(card.locator("img")).toHaveCount(0);
+  await expect(card.getByRole("link",{name:"example.com"})).toHaveAttribute("href",url);
   await page.getByRole("button", { name: new RegExp(`GUARDADO ${title}`) }).click();
   await expect(page.getByLabel("Enlace original")).toHaveValue(url);
   await expect(page.getByLabel("Precio (opcional)")).toHaveValue("42 €");
