@@ -114,7 +114,7 @@ describe("local model consumption", () => {
       db.run("INSERT INTO tal_semantic_usage (day, embedding_requests, embedded_tokens_estimate) VALUES (?, 2, 50)", day);
       db.run("INSERT INTO tal_usage_daily (day, ai_requests, input_tokens, output_tokens) VALUES (?, 3, 120, 20)", day);
       db.run("DROP TABLE tal_model_usage_daily");
-      for (const table of ['tal_calendar_exports', 'tal_captures', 'tal_calendar_events', 'tal_saved_links', 'tal_birthdays', 'tal_list_items', 'tal_lists']) db.run(`DROP TABLE IF EXISTS ${table}`);
+      for (const table of ['tal_saved_preview_chunks', 'tal_saved_previews', 'tal_calendar_exports', 'tal_captures', 'tal_calendar_events', 'tal_saved_links', 'tal_birthdays', 'tal_list_items', 'tal_lists']) db.run(`DROP TABLE IF EXISTS ${table}`);
       // Roll back past migrations 7-12: drop tables and columns those versions create so migrate can recreate them.
       db.run("DROP TABLE IF EXISTS tal_remote_auth_failures");
       db.run("DROP TABLE IF EXISTS tal_remote_tokens");

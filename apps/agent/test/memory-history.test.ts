@@ -417,7 +417,7 @@ describe("migration from the previous schema", () => {
     const run = freshAgent();
     await run((agent, state) => {
       const db = new Database(state.storage);
-      for (const table of ['tal_calendar_exports', 'tal_captures', 'tal_calendar_events', 'tal_saved_links', 'tal_birthdays', 'tal_list_items', 'tal_lists']) db.run(`DROP TABLE IF EXISTS ${table}`);
+      for (const table of ['tal_saved_preview_chunks', 'tal_saved_previews', 'tal_calendar_exports', 'tal_captures', 'tal_calendar_events', 'tal_saved_links', 'tal_birthdays', 'tal_list_items', 'tal_lists']) db.run(`DROP TABLE IF EXISTS ${table}`);
       // Rebuild the v3 shape, removing tables and columns added by later migrations.
       for (const idx of ["tal_memories_status", "tal_memories_superseded_by"]) db.run(`DROP INDEX IF EXISTS ${idx}`);
       db.run(`DROP TABLE IF EXISTS tal_memory_reviews`);
